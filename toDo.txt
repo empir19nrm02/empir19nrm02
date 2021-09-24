@@ -1,0 +1,10 @@
+#ToDo   Infotext zu den spektralen Daten einbauen
+#ToDo   OSRAM Daten in die spektralen Files übernehmen
+#ToDo   Test Generatorfunktionen für Zufallszahlen (Generator, FileSave, Multivariate repeater)
+#ToDo   MC Simulation implementieren
+
+#ToDo   luxpy und pyxll Kopplung mit einbauen
+#ToDo   Installation unabhängig von PyXll machen
+
+#ToDo   https://salib.readthedocs.io/en/latest/index.html
+#ToDo   https://joss.theoj.org/papers/10.21105/joss.00097.pdf
