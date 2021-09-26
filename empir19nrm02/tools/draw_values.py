@@ -28,10 +28,9 @@ Overview:
 
 import numpy as np
 import scipy.stats as stats
-import matplotlib.pyplot as plt
 import math
 
-__all__ = ['draw_values_gum','sumMC']
+__all__ = ['draw_values_gum','sumMC', 'sumMCV']
 
 def draw_values_gum(mean=0, stddev=1, draws=1000, distribution="normal"):
     """
@@ -82,7 +81,7 @@ def draw_values_gum(mean=0, stddev=1, draws=1000, distribution="normal"):
     return 0
 
 
-def sumMC(InputValues, Coverage=0.95, printOutput=False):
+def sumMC(InputValues, Coverage=0.95):
     """
     Based on InputValues for one quantity and the given coverage the measurement uncertainty based on montecarlo results is calculated.
 
@@ -114,10 +113,41 @@ def sumMC(InputValues, Coverage=0.95, printOutput=False):
     interval = [ylow, yhigh]
     # Summarizing the total output
     output = [values, interval]
-    # Printing the output values
-    if printOutput == True:
-        print('mean: ' + str(values[0]))
-        print('standard deviation: ' + str(values[1]))
-        print(str(Coverage * 100) + '% intervall: ' + str(interval))
-        # Returns the output values
+    # Returns the output values
+    return (output)
+
+def sumMCV(InputValues, Coverage=0.95):
+    """
+    Based on sumMC
+    Based on InputValues as an Array (trials, wavelength) for one quantity and the given coverage the measurement uncertainty
+    based on montecarlo results is calculated.
+
+    Output is returned as: [[Mean, absolute Standard uncertainty],[lower coverage boundary, upper coverage boundary]] as vectors
+
+    Example:    sumMCV([Numpy array], Coverage = 0.99)
+
+    Defaultvalue:
+        Coverage = 0.95 (k=2 for normal distributions)
+    """
+    # Sorting of the input values
+    Ys = np.sort(InputValues, axis=0)
+    # Calculating the number of draws
+    Ylen = Ys.shape[0]
+    # Calculating the number of draws covering the given coverage
+    q = int(Ylen * Coverage)
+    # Calculating the draw representing the lower coverage intervall boundary
+    r = int(0.5 * (Ylen - q))
+    # Calculating the mean of the input values
+    ymean = np.mean(Ys, axis=0)
+    # Calculating standard deviation of the input values as absolute standard uncertainty
+    yunc = np.std(Ys, axis=0)
+    # Summarizing mean and uncertainty
+    values = [ymean, yunc]
+    # Calculating the values of the draws for lower and upper boundary of the coverage intervall
+    ylow = Ys[r,:]
+    yhigh = Ys[r + q,:]
+    # Summarizing the coverage intervall
+    interval = [ylow, yhigh]
+    # Summarizing the total output
+    output = [values, interval]
     return (output)
