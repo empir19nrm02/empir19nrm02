@@ -30,18 +30,18 @@ class McSpectrumX(object):
         # to remember the number of elements
         self.wlElements = len(self.spd.wl)
 
-    def add_wl_noise_nc(self, ref, mean=0., stddev=1., distribution='normal'):
-        self.spd.wl = ref.spd.wl + draw_values_gum(mean, stddev, draws=self.wlElements, distribution=distribution)
+    def add_wl_noise_nc(self, mean=0., stddev=1., distribution='normal'):
+        self.spd.wl = self.spd.wl + draw_values_gum(mean, stddev, draws=self.wlElements, distribution=distribution)
         return self.spd.wl
 
-    def add_wl_noise_c(self, ref, mean=0., stddev=1., distribution='normal'):
-        self.spd.wl = draw_values_gum(mean, stddev, draws=1, distribution=distribution)[0] + ref.spd.wl
+    def add_wl_noise_c(self, mean=0., stddev=1., distribution='normal'):
+        self.spd.wl = draw_values_gum(mean, stddev, draws=1, distribution=distribution)[0] + self.spd.wl
         return self.spd.wl
 
-    def add_value_noise_nc(self, ref, mean=0., stddev=1., distribution='normal'):
-        self.spd.value = ref.spd.value + draw_values_gum(mean, stddev, draws=self.wlElements, distribution=distribution)
+    def add_value_noise_nc(self, mean=0., stddev=1., distribution='normal'):
+        self.spd.value = self.spd.value + draw_values_gum(mean, stddev, draws=self.wlElements, distribution=distribution)
         return self.spd.value
 
-    def add_value_noise_c(self, ref, mean=0., stddev=1., distribution='normal'):
-        self.spd.value = draw_values_gum(mean, stddev, draws=1, distribution=distribution)[0] + ref.spd.value
+    def add_value_noise_c(self, mean=0., stddev=1., distribution='normal'):
+        self.spd.value = draw_values_gum(mean, stddev, draws=1, distribution=distribution)[0] + self.spd.value
         return self.spd.value
