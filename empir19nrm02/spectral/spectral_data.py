@@ -18,6 +18,8 @@ Module for loading light source (spd) and detector data (res) spectra databases
 
  :_SPD_RGBLED: Database with RGB type white LED Data mainly based on CIE S 025 Data.
 
+ :_SPD_PhotoLED: Database with white LEDs from the PhotoLED Project (https://data.dtu.dk/articles/dataset/EMPIR_15SIB07_PhotoLED_-_Database_of_LED_product_spectra/12783389)
+
  :_RES_VLDetector: Database with VL Detectors mainly based on CIE S 025 Data.
 
  :_RES_VLNoiseSimulation: Database with ideal VL Detectors with 0.01 noise on a single wavelength
@@ -40,7 +42,7 @@ __all__ = ['_PKG_PATH','_SEP']
 
 __all__ += ['_SPD_PATH', '_RES_PATH',
            '_SPD', '_RES',
-           '_SPD_BB', '_SPD_PTLED', '_SPD_RGBLED', '_SPD_MONOLED', '_SPD_OSRAMLED',
+           '_SPD_BB', '_SPD_PTLED', '_SPD_RGBLED', '_SPD_PHOTOLED', '_SPD_MONOLED', '_SPD_OSRAMLED',
            '_RES_VLDETECTORS', '_RES_VLNOISESIMULATION', '_RES_VLSHIFTSIMULATION']
 
 _SPD_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'spd' + _SEP  # folder with spd data
@@ -63,6 +65,10 @@ _SPD_PTLED_S = _SPD_PTLED['S']
 # load RGB LED spd data base:
 _SPD_RGBLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_RGB_LED_White.csv', sep=';',kind='np').transpose()}}
 _SPD_RGBLED_S = _SPD_RGBLED['S']
+
+# load PhotoLED LED spd data base:
+_SPD_PHOTOLED = {'S': {'data': getdata(_SPD_PATH + 'EMPIR_PhotoLED_SPECTRAL_DATABASE.csv', sep=';',kind='np').transpose()}}
+_SPD_PHOTOLED_S = _SPD_PHOTOLED['S']
 
 # load Mono LED spd data base:
 _SPD_MONOLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_LED_Mono.csv', sep=';',kind='np').transpose()}}
@@ -87,6 +93,7 @@ _RES_VLSHIFTSIMULATION_S = _RES_VLSHIFTSIMULATION['S']
 _SPD = {'BB': _SPD_BB,
         'PTLED': _SPD_PTLED,
         'RGBLED': _SPD_RGBLED,
+        'PHOTOLED': _SPD_PHOTOLED,
         'MONOLED': _SPD_MONOLED,
         'OSRAMLED': None}
 
