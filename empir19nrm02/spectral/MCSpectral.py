@@ -6,8 +6,37 @@ import luxpy as lx
 
 # mod. version of drawValues() --> draw_values_gum()
 from empir19nrm02.tools import *
-
+import math
 __all__ = ['McSpectrumX']
+
+def py_getBaseFunctions( number, wl, phaseVector):
+    lambda1 = wl[0]
+    deltaLambda = wl[wl.size-1]-lambda1
+    baseFunctions = np.zeros((number+1, wl.size))
+    for i in range(number+1):
+        if i==0:
+            singleBase = np.ones(wl.size)
+        else:
+            singleBase = math.sqrt(2)*np.sin(i*(2*math.pi*((wl-lambda1)/(deltaLambda))+phaseVector[i]))
+        baseFunctions[i,:] = singleBase.transpose()
+    return baseFunctions.transpose()
+
+def py_getGammai( number):
+    Yi = stats.norm.rvs(size=number+1)
+    QSum=np.sum( Yi**2)
+    return Yi/math.sqrt(QSum)
+
+def generate_FourierMC0( number, wl, SPD, uSPD):
+    rGammai = np.random.normal(size=(number+1))
+    QSumSqrt = np.sqrt(np.sum(rGammai**2))
+    rGammaiN = rGammai / QSumSqrt
+    # Correction for the correlated contribution : Here we do not need the normalization
+    rGammaiN[0] = rGammai[0]
+    rPhasei = np.random.uniform(low = 0, high = 2*math.pi, size = (number+1))
+    baseFunctions = py_getBaseFunctions( number, wl, rPhasei)
+    rMatrix = np.dot(baseFunctions, rGammaiN)
+    rMatrixSPD = rMatrix*uSPD*SPD
+    return rMatrixSPD
 
 class McSpectrumX(object):
     """
@@ -44,4 +73,8 @@ class McSpectrumX(object):
 
     def add_value_noise_c(self, mean=0., stddev=1., distribution='normal'):
         self.spd.value = draw_values_gum(mean, stddev, draws=1, distribution=distribution)[0] + self.spd.value
+        return self.spd.value
+
+    def add_value_fourier_noise(self, ref, number, stddev=1., distribution='normal'):
+        self.spd.value = generate_FourierMC0( number, ref.spd.wl, ref.spd.value, stddev) + self.spd.value
         return self.spd.value
