@@ -39,10 +39,21 @@ def py_f1PrimeGlx( srDataWithWlScale, strObserver='1931_2', iObserverOffset = 1,
                  dCutOff=0., dBandWidth=0.):
     f1p = np.zeros(srDataWithWlScale.shape[0]-1)
     for iNumber in range(f1p.size-1):
-        f1p[iNumber]=py_f1PrimeG(srDataWithWlScale[0,:], srDataWithWlScale[iNumber+1,:], \
+        [f1p[iNumber], _]=py_f1PrimeG(srDataWithWlScale[0,:], srDataWithWlScale[iNumber+1,:], \
                                  strObserver=strObserver, iObserverOffset=iObserverOffset, \
                                  iMin=iMin, dCutOff=dCutOff, dBandWidth=dBandWidth)
     return f1p
+
+
+def NextPowerOfTwo(number):
+    # Returns next power of two following 'number'
+    return math.ceil(math.log(number,2))
+
+def PadLeft(arr):
+    nextPower = NextPowerOfTwo(len(arr))
+    deficit = int(math.pow(2, nextPower) - len(arr))
+    arr = np.concatenate((np.zeros(deficit, dtype=arr.dtype), arr))
+    return arr
 
 @xl_func("numpy_array<float> wlScale, numpy_array<float> srData, string strObserver, int iObserverOffset, \
           string strWeighting, int iMin, float dCutOff, float dBandWidth: float", auto_resize=True)
@@ -147,12 +158,32 @@ def py_f1PrimeG( wlScale, srData, strObserver='1931_2', iObserverOffset = 1, str
         if dCutOff > 0:
             # original method from AF
             # calculate the abs value of the fft (squared)
+            zeroNull = True
+
             deltaVectorFFT = np.power(np.abs(fft(deltaVector)), 2)
+
+            deltaVectorZeroPadding=PadLeft(deltaVector)
+            resZeroPadding = deltaVectorZeroPadding.shape[0]
+            deltaVectorFFTZeroPadding = np.power(np.abs(fft(deltaVectorZeroPadding)), 2)
+            if zeroNull:
+                deltaVectorFFTZeroPadding[0] = 0;
+                deltaVectorFFT[0] = 0;
+
             # get the frequency list from the FFT scale
             wlFrequencies = fftfreq(res, deltaLambda)[:res // 2]
+            wlFrequenciesZeroPadding = fftfreq(resZeroPadding, deltaLambda)[:resZeroPadding // 2]
+
+            wlFrequenciesInterool = lx.getwlr([0, 0.5, 0.001])
+            deltaVectorFFTInterpol = np.interp( wlFrequenciesInterool, wlFrequencies, deltaVectorFFT[:res // 2])
+            deltaVectorFFTZeroPaddingInterpol = np.interp( wlFrequenciesInterool, wlFrequenciesZeroPadding, deltaVectorFFTZeroPadding[:resZeroPadding // 2])
+
+
             intIndex = np.where(wlFrequencies < dCutOff)
+            intIndexZeroPadding = np.where(wlFrequenciesZeroPadding < dCutOff)
             # attention this value gives total different numbers compared with f1Prime
-            f1PrimeGValue = math.sqrt(2 * np.trapz(deltaVectorFFT[intIndex], wlFrequencies[intIndex]))
+            #f1PrimeGValue = math.sqrt(2 * np.trapz(deltaVectorFFT[intIndex], wlFrequencies[intIndex]))
+            #f1PrimeGValue = math.sqrt(2 * np.sum(deltaVectorFFT[intIndex]) * wlFrequencies[2]-wlFrequencies[1]))
+            f1PrimeGValue = math.sqrt(2 * np.sum(deltaVectorFFTZeroPaddingInterpol[intIndexZeroPadding]) * (wlFrequenciesInterool[2]-wlFrequenciesInterool[1]))
         else:
             # modified version with back transfer after applying the cutoff
             # calculate the abs value of the fft (squared)
@@ -166,7 +197,7 @@ def py_f1PrimeG( wlScale, srData, strObserver='1931_2', iObserverOffset = 1, str
     if dCutOff <= 0:
         f1PrimeGValue = np.trapz(abs(deltaVector), wlScale)
 
-    return f1PrimeGValue
+    return [f1PrimeGValue, deltaVector]
 
 @xl_func("numpy_array<float> wlScale, numpy_array<float> srData, string strObserver, int iObserverOffset, \
           string strWeighting, int iMin, float dCutOff, float dBandWidth: numpy_array<float>", auto_resize=True)

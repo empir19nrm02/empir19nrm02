@@ -66,6 +66,15 @@ _SPD_PTLED_S = _SPD_PTLED['S']
 _SPD_RGBLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_RGB_LED_White.csv', sep=';',kind='np').transpose()}}
 _SPD_RGBLED_S = _SPD_RGBLED['S']
 
+# load RGB LEDs producing White ligth (original collection used in CIE S 025/E:2015; https://cie.co.at/publications/test-method-led-lamps-led-luminaires-and-led-modules ):
+_SPD_CIES025_RGBLED = {'S': {'data': getdata(_SPD_PATH + 'CIES025_SPD_RGB_LED_White.csv', sep=';',kind='np').transpose()}}
+_SPD_CIES025_RGBLED['S']['info'] = getdata(_SPD_PATH + 'CIES025_SPD_RGB_LED_White_Info.txt', kind='np', header='infer', verbosity=False)
+_SPD_CIES025_RGBLED_S = _SPD_CIES025_RGBLED['S']
+
+_SPD_CIES025_PTLED = {'S': {'data': getdata(_SPD_PATH + 'CIES025_SPD_PT_LED_White.csv', sep=';',kind='np').transpose()}}
+_SPD_CIES025_PTLED['S']['info'] = getdata(_SPD_PATH + 'CIES025_SPD_PT_LED_White_Info.txt', kind='np', header='infer', verbosity=False)
+_SPD_CIES025_PTLED_S = _SPD_CIES025_PTLED['S']
+
 # load PhotoLED LED spd data base:
 _SPD_PHOTOLED = {'S': {'data': getdata(_SPD_PATH + 'EMPIR_PhotoLED_SPECTRAL_DATABASE.csv', sep=';',kind='np').transpose()}}
 _SPD_PHOTOLED_S = _SPD_PHOTOLED['S']
@@ -79,25 +88,35 @@ _SPD_OSRAMLED = {'S': {'data': ''}}
 #_SPD_OSRAMLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_OSRAM.csv', sep=';',kind='np').transpose()}}
 #_SPD_OSRAMLED_S = _SPD_OSRAM['S']
 
-# load Mono LED spd data base:
+# load VL Detectors (current collection):
 _RES_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'VL_Detectors.csv', sep=';',kind='np').transpose()}}
 _RES_VLDETECTORS_S = _RES_VLDETECTORS['S']
 
+# load VL Detectors (original collection used in CIE S 025/E:2015; https://cie.co.at/publications/test-method-led-lamps-led-luminaires-and-led-modules ):
+_RES_CIES025_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'CIES025_VL_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_CIES025_VLDETECTORS['S']['info'] = getdata(_RES_PATH + 'CIES025_VL_Detectors_Info.txt', kind='np', header='infer', verbosity=False)
+_RES_CIES025_VLDETECTORS_S = _RES_CIES025_VLDETECTORS['S']
+
+# load VL Detectors with noise on single wavelegnth posiotions only:
 _RES_VLNOISESIMULATION = {'S': {'data': getdata(_RES_PATH + 'VL_DetectorsVLPlusNoise.csv', sep=';',kind='np').transpose()}}
 _RES_VLNOISESIMULATION_S = _RES_VLNOISESIMULATION['S']
 
+# load VL Detectors shifted to each other:
 _RES_VLSHIFTSIMULATION = {'S': {'data': getdata(_RES_PATH + 'VL_DetectorsVLShift.csv', sep=';',kind='np').transpose()}}
 _RES_VLSHIFTSIMULATION_S = _RES_VLSHIFTSIMULATION['S']
 
 # Initialize _SPD :
 _SPD = {'BB': _SPD_BB,
         'PTLED': _SPD_PTLED,
+        'CIES025_PTLED': _SPD_CIES025_PTLED,
         'RGBLED': _SPD_RGBLED,
+        'CIES025_RGBLED': _SPD_CIES025_RGBLED,
         'PHOTOLED': _SPD_PHOTOLED,
         'MONOLED': _SPD_MONOLED,
         'OSRAMLED': None}
 
 # Initialize _SPD :
 _RES = {'VLDetectors': _RES_VLDETECTORS,
+        'CIES025_VLDetectors': _RES_CIES025_VLDETECTORS,
         'VLSimNoise': _RES_VLNOISESIMULATION,
         'VLSimShift': _RES_VLSHIFTSIMULATION}

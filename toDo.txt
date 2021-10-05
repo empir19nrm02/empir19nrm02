@@ -1,9 +1,19 @@
+#ToDo   Documentation für die Installation erstllen
+
 #ToDo   Infotext zu den spektralen Daten einbauen
 #ToDo   OSRAM Daten in die spektralen Files übernehmen
+#ToDo   Mono/PT-LEDs erweitern
+#ToDo   CIES025 Daten um Originalzustand breitstellen
+
+#ToDo   Auswertung der CIE S025 implementieren und demonstrieren (wie wirken sich die neuen Spektren und die neuen Detektoren aus?)
+
 #ToDo   Test Generatorfunktionen für Zufallszahlen (Generator, FileSave, Multivariate repeater)
+
+#ToDo   FourierNoise (Dokumentieren, Testen (PetriTable generieren und mit Publikation vergleichen)
+
 #ToDo   MC Simulation implementieren
 
-#ToDo   luxpy und pyxll Kopplung mit einbauen
+#ToDo   luxpy und pyxll Kopplung mit einbauen (separat vom empir19nrm02 Projekt)
 #ToDo   Installation unabhängig von PyXll machen
 
 #ToDo   https://salib.readthedocs.io/en/latest/index.html
