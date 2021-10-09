@@ -38,7 +38,7 @@ def py_f1Prime( wlScale, srData):
 def py_f1PrimeGlx( srDataWithWlScale, strObserver='1931_2', iObserverOffset = 1, strWeighting='A', iMin=0, \
                  dCutOff=0., dBandWidth=0.):
     f1p = np.zeros(srDataWithWlScale.shape[0]-1)
-    for iNumber in range(f1p.size-1):
+    for iNumber in range(f1p.size):
         [f1p[iNumber], _]=py_f1PrimeG(srDataWithWlScale[0,:], srDataWithWlScale[iNumber+1,:], \
                                  strObserver=strObserver, iObserverOffset=iObserverOffset, \
                                  iMin=iMin, dCutOff=dCutOff, dBandWidth=dBandWidth)
@@ -160,30 +160,22 @@ def py_f1PrimeG( wlScale, srData, strObserver='1931_2', iObserverOffset = 1, str
             # calculate the abs value of the fft (squared)
             zeroNull = True
 
-            deltaVectorFFT = np.power(np.abs(fft(deltaVector)), 2)
-
             deltaVectorZeroPadding=PadLeft(deltaVector)
             resZeroPadding = deltaVectorZeroPadding.shape[0]
             deltaVectorFFTZeroPadding = np.power(np.abs(fft(deltaVectorZeroPadding)), 2)
             if zeroNull:
                 deltaVectorFFTZeroPadding[0] = 0;
-                deltaVectorFFT[0] = 0;
 
             # get the frequency list from the FFT scale
-            wlFrequencies = fftfreq(res, deltaLambda)[:res // 2]
             wlFrequenciesZeroPadding = fftfreq(resZeroPadding, deltaLambda)[:resZeroPadding // 2]
 
             wlFrequenciesInterool = lx.getwlr([0, 0.5, 0.001])
-            deltaVectorFFTInterpol = np.interp( wlFrequenciesInterool, wlFrequencies, deltaVectorFFT[:res // 2])
             deltaVectorFFTZeroPaddingInterpol = np.interp( wlFrequenciesInterool, wlFrequenciesZeroPadding, deltaVectorFFTZeroPadding[:resZeroPadding // 2])
 
 
-            intIndex = np.where(wlFrequencies < dCutOff)
-            intIndexZeroPadding = np.where(wlFrequenciesZeroPadding < dCutOff)
+            intIndexZeroPaddingInterpol = np.where(wlFrequenciesInterool < dCutOff)
             # attention this value gives total different numbers compared with f1Prime
-            #f1PrimeGValue = math.sqrt(2 * np.trapz(deltaVectorFFT[intIndex], wlFrequencies[intIndex]))
-            #f1PrimeGValue = math.sqrt(2 * np.sum(deltaVectorFFT[intIndex]) * wlFrequencies[2]-wlFrequencies[1]))
-            f1PrimeGValue = math.sqrt(2 * np.sum(deltaVectorFFTZeroPaddingInterpol[intIndexZeroPadding]) * (wlFrequenciesInterool[2]-wlFrequenciesInterool[1]))
+            f1PrimeGValue = math.sqrt(2 * np.sum(deltaVectorFFTZeroPaddingInterpol[intIndexZeroPaddingInterpol]) * (wlFrequenciesInterool[2]-wlFrequenciesInterool[1]))
         else:
             # modified version with back transfer after applying the cutoff
             # calculate the abs value of the fft (squared)
