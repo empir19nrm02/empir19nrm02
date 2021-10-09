@@ -58,7 +58,8 @@ def plotCorrMatrixSamll(corr_data, data_labels, title=None, with_values=True, fi
 
 
 def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
-                   title='Title', xLabel='xLabel', yLabel=None):
+                   title='Title', xLabel='xLabel', yLabel=None,
+                   filename=None):
     if ax == None:
         fig, ax1 = plt.subplots()
     else:
@@ -79,19 +80,23 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
     ax1.axvline(interval[0])
     ax1.axvline(interval[1])
     ax1.axvline(value[0], color='tab:red')
+    if filename is not None:
+        fig.savefig(filename)
     if ax is None:
         fig.show()
 
 def plotHistScalesWl(data, fig=None, ax=None, bins=50, density=True,
                      title='Histogram of wavelength scale',
-                     xLabel='$\Delta \lambda / nm$'):
-    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel)
+                     xLabel='$\Delta \lambda / nm$',
+                     filename = None):
+    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename)
 
 
 def plotHistScalesValue(data, fig=None, ax=None, bins=50, density=True,
                         title='Histogram of value scale',
-                        xLabel='$\Delta y / a.u.$'):
-    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel)
+                        xLabel='$\Delta y / a.u.$',
+                        filename=None):
+    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename)
 
 def array2analyse(spectrumMC, wavelength_stat=True, scale_to_ref=True):
     _trials = len(spectrumMC) - 1
@@ -111,7 +116,7 @@ def array2analyse(spectrumMC, wavelength_stat=True, scale_to_ref=True):
     return loc_analyse
 
 
-def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
+def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, filename = None):
     wavelength_array = spectrum_mc[0].spd.wl
     loc_analyse = array2analyse(spectrum_mc, wavelength_stat, scale_to_ref)
 
@@ -159,6 +164,8 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
         plotHistScalesWl(loc_analyse, ax=ax1)
     else:
         plotHistScalesValue(loc_analyse, ax=ax1)
+    if filename is not None:
+        plt.savefig(filename)
     plt.show()
 
 def get_data_step(size_to_minimize, max_data_to_display=1000):
@@ -170,7 +177,7 @@ def get_data_step(size_to_minimize, max_data_to_display=1000):
         disp_count = int(size_to_minimize / step)
     return disp_count, step
 
-def seaborn_plot_basedata(loc_array, wavelength_to_observe=550):
+def seaborn_plot_basedata(loc_array, wavelength_to_observe=550, filename=None):
     pos, = np.where(np.isclose(loc_array[0].spd.wl, wavelength_to_observe))
 
     disp_array_count, step = get_data_step(loc_array.shape[0])
@@ -184,8 +191,10 @@ def seaborn_plot_basedata(loc_array, wavelength_to_observe=550):
     grid = sns.pairplot(df, corner=True)
     plotTitle = 'Observation @ $\lambda$ = {} nm'
     grid.fig.suptitle(plotTitle.format(wavelength_to_observe))
+    if filename is not None:
+        grid.fig.savefig(filename)
 
-def seaborn_plot_result(loc_result):
+def seaborn_plot_result(loc_result, filename=None):
     disp_array_count, step = get_data_step(loc_result.shape[1])
     disp_array = np.zeros((3, disp_array_count - 1))
     for i in range(disp_array_count - 1):
@@ -198,4 +207,5 @@ def seaborn_plot_result(loc_result):
     grid = sns.pairplot(df, corner=True)
     plotTitle = 'Observation Yxy result'
     grid.fig.suptitle(plotTitle.format())
-
+    if filename is not None:
+        grid.fig.savefig(filename)
