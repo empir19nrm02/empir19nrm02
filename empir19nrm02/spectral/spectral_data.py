@@ -42,7 +42,7 @@ __all__ = ['_PKG_PATH','_SEP']
 
 __all__ += ['_SPD_PATH', '_RES_PATH',
            '_SPD', '_RES',
-           '_SPD_BB', '_SPD_PTLED', '_SPD_RGBLED', '_SPD_PHOTOLED', '_SPD_MONOLED', '_SPD_OSRAMLED',
+           '_SPD_BB', '_SPD_PTLED', '_SPD_RGBLED', '_SPD_PHOTOLED', '_SPD_MONOLED', '_SPD_OSRAM_PTLED', '_SPD_OSRAM_MONOLED',
            '_RES_VLDETECTORS', '_RES_VLNOISESIMULATION', '_RES_VLSHIFTSIMULATION']
 
 _SPD_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'spd' + _SEP  # folder with spd data
@@ -75,7 +75,12 @@ _SPD_CIES025_PTLED = {'S': {'data': getdata(_SPD_PATH + 'CIES025_SPD_PT_LED_Whit
 _SPD_CIES025_PTLED['S']['info'] = getdata(_SPD_PATH + 'CIES025_SPD_PT_LED_White_Info.txt', kind='np', header='infer', verbosity=False)
 _SPD_CIES025_PTLED_S = _SPD_CIES025_PTLED['S']
 
-# load PhotoLED LED spd data base:
+# load PT White LED spd data base (from: https://apps.osram-os.com/ 19.09.21)
+_SPD_OSRAM_PTLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_OSRAM_PT_LED_White.csv', sep=';',kind='np').transpose()}}
+_SPD_OSRAM_PTLED['S']['info'] = getdata(_SPD_PATH + 'SPD_OSRAM_PT_LED_White_Info.txt', kind='np', header='infer', verbosity=False)
+_SPD_OSRAM_PTLED_S = _SPD_OSRAM_PTLED['S']
+
+# load PhotoLED LED spd data base: PhotoLED Project [EMPIR15SIB07](https://data.dtu.dk/articles/dataset/EMPIR_15SIB07_PhotoLED_-_Database_of_LED_product_spectra/12783389)
 _SPD_PHOTOLED = {'S': {'data': getdata(_SPD_PATH + 'EMPIR_PhotoLED_SPECTRAL_DATABASE.csv', sep=';',kind='np').transpose()}}
 _SPD_PHOTOLED_S = _SPD_PHOTOLED['S']
 
@@ -83,10 +88,11 @@ _SPD_PHOTOLED_S = _SPD_PHOTOLED['S']
 _SPD_MONOLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_LED_Mono.csv', sep=';',kind='np').transpose()}}
 _SPD_MONOLED_S = _SPD_MONOLED['S']
 
-# load Mono LED spd data base:
-_SPD_OSRAMLED = {'S': {'data': ''}}
-#_SPD_OSRAMLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_OSRAM.csv', sep=';',kind='np').transpose()}}
-#_SPD_OSRAMLED_S = _SPD_OSRAM['S']
+# load Mono LED spd data base (from: https://apps.osram-os.com/ 19.09.21)
+_SPD_OSRAM_MONOLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_OSRAM_Mono.csv', sep=';',kind='np').transpose()}}
+_SPD_OSRAM_MONOLED['S']['info'] = getdata(_SPD_PATH + 'SPD_OSRAM_Mono_Info.txt', kind='np', header='infer', verbosity=False)
+_SPD_OSRAM_MONOLED_S = _SPD_OSRAM_MONOLED['S']
+
 
 # load VL Detectors (current collection):
 _RES_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'VL_Detectors.csv', sep=';',kind='np').transpose()}}
@@ -109,11 +115,12 @@ _RES_VLSHIFTSIMULATION_S = _RES_VLSHIFTSIMULATION['S']
 _SPD = {'BB': _SPD_BB,
         'PTLED': _SPD_PTLED,
         'CIES025_PTLED': _SPD_CIES025_PTLED,
+        'OSRAM_PTLED': _SPD_OSRAM_PTLED,
         'RGBLED': _SPD_RGBLED,
         'CIES025_RGBLED': _SPD_CIES025_RGBLED,
         'PHOTOLED': _SPD_PHOTOLED,
         'MONOLED': _SPD_MONOLED,
-        'OSRAMLED': None}
+        'OSRAM_MONOLED': _SPD_OSRAM_MONOLED}
 
 # Initialize _SPD :
 _RES = {'VLDetectors': _RES_VLDETECTORS,
