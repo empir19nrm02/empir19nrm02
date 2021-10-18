@@ -49,11 +49,14 @@ def NextPowerOfTwo(number):
     # Returns next power of two following 'number'
     return math.ceil(math.log(number,2))
 
-def PadLeft(arr):
+def PadRight(arr):
     nextPower = NextPowerOfTwo(len(arr))
     deficit = int(math.pow(2, nextPower) - len(arr))
-    arr = np.concatenate((np.zeros(deficit, dtype=arr.dtype), arr))
+    arr = np.concatenate((arr, np.zeros(deficit, dtype=arr.dtype)))
     return arr
+
+
+useAFOrgImplementation = False
 
 @xl_func("numpy_array<float> wlScale, numpy_array<float> srData, string strObserver, int iObserverOffset, \
           string strWeighting, int iMin, float dCutOff, float dBandWidth: float", auto_resize=True)
@@ -158,24 +161,62 @@ def py_f1PrimeG( wlScale, srData, strObserver='1931_2', iObserverOffset = 1, str
         if dCutOff > 0:
             # original method from AF
             # calculate the abs value of the fft (squared)
-            zeroNull = True
+            # Original implementation in python based on matlab source code from AF
+#            #if useAFOrgImplementation:
+#                ldo0=wlScale
+#                Vlambda=iCmf[iObserverOffset + 1]
+#                Responsividad=srData
+#                normali = np.sum((ldo0[2] - ldo0[1]) * Vlambda) / np.sum((ldo0[2] - ldo0[1]) * Responsividad)
+#                Dif_fpirma_s = (Responsividad * normali - Vlambda) / np.sum((ldo0[2] - ldo0[1]) * Vlambda)
+#                L = ldo0.shape[0]
+#                Fs = 1 / (ldo0[2] - ldo0[1])
+#                NFFT = int(math.pow(2, NextPowerOfTwo(L)))
+#                Dif_fpirma_net=np.zeros(NFFT)
+#                #Dif_fpirma_net[L + 1: NFFT]=0
+#                Dif_fpirma_net[:L]= Dif_fpirma_s - np.mean(Dif_fpirma_s)
+#                PSD = (1 / (L * Fs)) * np.power(np.abs(fft(Dif_fpirma_net)), 2)
+#                f = Fs / 2 * np.linspace(0, 1, int(NFFT / 2 + 1))
+#                PSD_ss = np.abs(PSD[0:int(NFFT / 2 + 1)])
+#                f_inter = Fs * lx.getwlr([0, 0.5, 0.0001])
+#                PSD_ss_int = np.interp(f_inter, f, PSD_ss)
+#                indices = np.where(np.logical_and(f_inter >= 0, f_inter < dCutOff))
+#                f1PrimeGValue1 = np.sqrt(2 * np.sum((f_inter[2] - f_inter[1]) * PSD_ss_int[indices]))
+#                deltaVector= Dif_fpirma_s
+            if useAFOrgImplementation:
+                # modified version with identical behavior
+                deltaVectorZeroPadding=PadRight(deltaVector)
+                deltaVectorZeroPadding[:res]=deltaVectorZeroPadding[:res]-np.mean(deltaVectorZeroPadding[:res])
+                resZeroPadding = deltaVectorZeroPadding.shape[0]
+                resOrgData = deltaVector.shape[0]
+                deltaVectorFFTZeroPadding = deltaLambda/resOrgData*np.power(np.abs(fft(deltaVectorZeroPadding)), 2)
 
-            deltaVectorZeroPadding=PadLeft(deltaVector)
-            resZeroPadding = deltaVectorZeroPadding.shape[0]
-            deltaVectorFFTZeroPadding = np.power(np.abs(fft(deltaVectorZeroPadding)), 2)
-            if zeroNull:
-                deltaVectorFFTZeroPadding[0] = 0;
+                # get the frequency list from the FFT scale
+                wlFrequenciesZeroPadding = 1 / (2*deltaLambda) * np.linspace(0, 1, resZeroPadding // 2 +1)
 
-            # get the frequency list from the FFT scale
-            wlFrequenciesZeroPadding = fftfreq(resZeroPadding, deltaLambda)[:resZeroPadding // 2]
+                wlFrequenciesInterool = 1/deltaLambda*lx.getwlr([0, 0.5, 0.0001])
+                deltaVectorFFTZeroPaddingInterpol = np.interp( wlFrequenciesInterool, wlFrequenciesZeroPadding, deltaVectorFFTZeroPadding[:resZeroPadding // 2+1])
 
-            wlFrequenciesInterool = lx.getwlr([0, 0.5, 0.001])
-            deltaVectorFFTZeroPaddingInterpol = np.interp( wlFrequenciesInterool, wlFrequenciesZeroPadding, deltaVectorFFTZeroPadding[:resZeroPadding // 2])
+                intIndexZeroPaddingInterpol = np.where(np.logical_and(wlFrequenciesInterool >= 0, wlFrequenciesInterool < dCutOff))
+                # attention this value gives total different numbers compared with f1Prime
+                f1PrimeGValue = np.sqrt(2 * np.sum(deltaVectorFFTZeroPaddingInterpol[intIndexZeroPaddingInterpol]) * (wlFrequenciesInterool[2]-wlFrequenciesInterool[1]))
+            else:
+                # different Implementation cf AF
+                # - No ZeroPadding
+                # - No Interpolation in the frequency space
+                # - using the right frequencies in the frequency domain
 
+                deltaVectorOffset = deltaVector - np.mean(deltaVector)
+                deltaVectorOffsetFFT = deltaLambda/res*np.power(np.abs(fft(deltaVectorOffset)), 2)
 
-            intIndexZeroPaddingInterpol = np.where(wlFrequenciesInterool < dCutOff)
-            # attention this value gives total different numbers compared with f1Prime
-            f1PrimeGValue = math.sqrt(2 * np.sum(deltaVectorFFTZeroPaddingInterpol[intIndexZeroPaddingInterpol]) * (wlFrequenciesInterool[2]-wlFrequenciesInterool[1]))
+                # get the frequency list from the FFT scale
+                wlFrequencies = fftfreq(res, deltaLambda)[:res // 2]
+
+                intIndex = np.where(
+                    np.logical_and(wlFrequencies >= 0, wlFrequencies < dCutOff))
+                # attention this value gives total different numbers compared with f1Prime
+                f1PrimeGValue = np.sqrt(2 * np.sum(deltaVectorOffsetFFT[intIndex]) * (
+                            wlFrequencies[2] - wlFrequencies[1]))
+
         else:
             # modified version with back transfer after applying the cutoff
             # calculate the abs value of the fft (squared)

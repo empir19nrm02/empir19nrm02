@@ -27,8 +27,8 @@ def plotYxy(Yxy, title='xy-plot', fileName=None):
     if fileName != None: pyplot.savefig(fileName)
 
 
-def plotHist(data, xLabel='x', yLabel='y', title='title', fileName=None):
-    pyplot.hist(data)
+def plotHist(data, xLabel='x', yLabel='y', title='title', fileName=None, bins=50):
+    pyplot.hist(data, bins=bins)
     pyplot.xlabel(xLabel)
     pyplot.ylabel(yLabel)
     pyplot.title(title)
