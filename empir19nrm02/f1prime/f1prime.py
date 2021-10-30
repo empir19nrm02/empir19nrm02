@@ -41,7 +41,7 @@ def py_f1PrimeGlx( srDataWithWlScale, strObserver='1931_2', iObserverOffset = 1,
     for iNumber in range(f1p.size):
         [f1p[iNumber], _]=py_f1PrimeG(srDataWithWlScale[0,:], srDataWithWlScale[iNumber+1,:], \
                                  strObserver=strObserver, iObserverOffset=iObserverOffset, \
-                                 iMin=iMin, dCutOff=dCutOff, dBandWidth=dBandWidth)
+                                 iMin=iMin, dCutOff=dCutOff, dBandWidth=dBandWidth, strWeighting=strWeighting)
     return f1p
 
 
@@ -206,16 +206,17 @@ def py_f1PrimeG( wlScale, srData, strObserver='1931_2', iObserverOffset = 1, str
                 # - using the right frequencies in the frequency domain
 
                 deltaVectorOffset = deltaVector - np.mean(deltaVector)
-                deltaVectorOffsetFFT = deltaLambda/res*np.power(np.abs(fft(deltaVectorOffset)), 2)
+                deltaVectorOffsetFFT =np.power(np.abs(fft(deltaVectorOffset)), 2)
 
+                #var1 = np.std(deltaVectorOffset)
+                #var2 = math.sqrt(2/(res*res)*np.sum(deltaVectorOffsetFFT[:res//2]))
+                #print( var1, var2, var1/var2, var1-var2)
                 # get the frequency list from the FFT scale
                 wlFrequencies = fftfreq(res, deltaLambda)[:res // 2]
 
-                intIndex = np.where(
-                    np.logical_and(wlFrequencies >= 0, wlFrequencies < dCutOff))
+                intIndex = np.where( np.logical_and(wlFrequencies >= 0, wlFrequencies < dCutOff))
                 # attention this value gives total different numbers compared with f1Prime
-                f1PrimeGValue = np.sqrt(2 * np.sum(deltaVectorOffsetFFT[intIndex]) * (
-                            wlFrequencies[2] - wlFrequencies[1]))
+                f1PrimeGValue = np.sqrt(2/(res*res) * np.sum(deltaVectorOffsetFFT[intIndex]))
 
         else:
             # modified version with back transfer after applying the cutoff

@@ -4,10 +4,11 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from sigfig import round
 
 from .draw_values import sumMC, sumMCV
 
-__all__ = ['plotSelectedSPD','plotYxy', 'plotHist', 'plotCorrMatrixSamll',
+__all__ = ['plotSelectedSPD','plotYxy', 'plotHist', 'plotCorrMatrixSmall',
            'plotHistScales','plotHistScalesWl','plotHistScalesValue',
            'array2analyse','analyse_stat','get_data_step','seaborn_plot_basedata', 'seaborn_plot_result']
 
@@ -35,27 +36,41 @@ def plotHist(data, xLabel='x', yLabel='y', title='title', fileName=None, bins=50
     if fileName != None: pyplot.savefig(fileName)
 
 
-def plotCorrMatrixSamll(corr_data, data_labels, title=None, with_values=True, fileName=None):
+def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCols=0, title=None, with_values=True, fileName=None):
+
     fig, ax = pyplot.subplots(figsize=(8, 8))
-    im = ax.imshow(corr_data)
-    fig.colorbar(im)
-    data_count = len(data_labels)
-    ax.set_xticks(np.arange(data_count))
-    ax.set_yticks(np.arange(data_count))
-    ax.set_xticklabels(data_labels)
-    ax.set_yticklabels(data_labels)
+    ic=corr_data.shape[1]
+    data2show=corr_data[iRaws:,:ic-iCols]
+    im = ax.imshow(data2show)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(im, cax=cax)
+    x_data_count = len(data_labels)
+    if y_data_labels:
+        y_data_count = len(y_data_labels)
+    else:
+        y_data_count = x_data_count
+    ax.set_xticks(np.arange(x_data_count-iCols))
+    ax.set_yticks(np.arange(y_data_count-iRaws))
+    ax.set_xticklabels(data_labels[:ic-iCols])
+    if y_data_labels:
+        ax.set_yticklabels(y_data_labels[iRaws:])
+    else:
+        ax.set_yticklabels(data_labels[iRaws:])
 
     pyplot.setp(ax.get_xticklabels(), rotation=90, ha="right",
                 rotation_mode="anchor")
     # Loop over data dimensions and create text annotations.
     if with_values:
-        for i in range(data_count):
-            for j in range(data_count):
-                ax.text(j, i, round(corr_data[i, j], 2), ha="center", va="center", color="r")
+        data_corr=corr_data[iRaws:,:ic-iCols]
+        for i in range(data_corr.shape[0]):
+            for j in range(data_corr.shape[1]):
+                strOut = round(str(data_corr[i, j]), decimals=2)
+                ax.text(j, i, strOut, ha="center", va="center", color="r")
     ax.set_title(title)
     fig.tight_layout()
-    pyplot.savefig(fileName)
-
+    if fileName is not None:
+        pyplot.savefig(fileName)
 
 def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
                    title='Title', xLabel='xLabel', yLabel=None,
@@ -116,7 +131,7 @@ def array2analyse(spectrumMC, wavelength_stat=True, scale_to_ref=True):
     return loc_analyse
 
 
-def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, filename = None):
+def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
     wavelength_array = spectrum_mc[0].spd.wl
     loc_analyse = array2analyse(spectrum_mc, wavelength_stat, scale_to_ref)
 
@@ -125,9 +140,9 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, filename 
 
     fig = plt.figure(figsize=(10, 10))
 
-    ax1 = plt.subplot(221)
-    ax2 = plt.subplot(222)
-    ax3 = plt.subplot(212)
+    ax1 = plt.subplot(221, constrained_layout=True)
+    ax2 = plt.subplot(222, constrained_layout=True)
+    ax3 = plt.subplot(212, constrained_layout=True)
 
     color = 'tab:red'
     ax3.margins(0.05)
@@ -142,8 +157,6 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, filename 
     ax32.set_ylabel('$\sigma$', color=color)  # we already handled the x-label with ax1
     ax32.plot(wavelength_array, loc_result_sum_mcv[1], color=color)
     ax32.tick_params(axis='y', labelcolor=color)
-
-    plt.tight_layout()  # otherwise the right y-label is slightly clipped
 
     if wavelength_stat:
         plt.title('Data Statistics Wavelength')
@@ -164,9 +177,8 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, filename 
         plotHistScalesWl(loc_analyse, ax=ax1)
     else:
         plotHistScalesValue(loc_analyse, ax=ax1)
-    if filename is not None:
-        plt.savefig(filename)
-    plt.show()
+
+    plt.tight_layout()  # otherwise the right y-label is slightly clipped
 
 def get_data_step(size_to_minimize, max_data_to_display=1000):
     if size_to_minimize < max_data_to_display:
