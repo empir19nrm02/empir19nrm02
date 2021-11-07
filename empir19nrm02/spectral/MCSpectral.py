@@ -7,7 +7,7 @@ import luxpy as lx
 # mod. version of drawValues() --> draw_values_gum()
 from empir19nrm02.tools import *
 import math
-__all__ = ['McSpectrumX']
+__all__ = ['McSpectrumX', "generate_FourierMC0"]
 
 def py_getBaseFunctions( number, wl, phaseVector):
     lambda1 = wl[0]
@@ -26,7 +26,7 @@ def py_getGammai( number):
     QSum=np.sum( Yi**2)
     return Yi/math.sqrt(QSum)
 
-def generate_FourierMC0( number, wl, SPD, uSPD):
+def generate_FourierMC0( number, wl, uValue):
     rGammai = np.random.normal(size=(number+1))
     QSumSqrt = np.sqrt(np.sum(rGammai**2))
     rGammaiN = rGammai / QSumSqrt
@@ -35,7 +35,7 @@ def generate_FourierMC0( number, wl, SPD, uSPD):
     rPhasei = np.random.uniform(low = 0, high = 2*math.pi, size = (number+1))
     baseFunctions = py_getBaseFunctions( number, wl, rPhasei)
     rMatrix = np.dot(baseFunctions, rGammaiN)
-    rMatrixSPD = rMatrix*uSPD*SPD
+    rMatrixSPD = rMatrix*uValue
     return rMatrixSPD
 
 class McSpectrumX(object):
@@ -67,6 +67,10 @@ class McSpectrumX(object):
         self.spd.wl = draw_values_gum(mean, stddev, draws=1, distribution=distribution)[0] + self.spd.wl
         return self.spd.wl
 
+    def add_wl_fourier_noise(self, ref, number, stddev=1.):
+        self.spd.wl = generate_FourierMC0( number, ref.spd.wl, stddev) + self.spd.wl
+        return self.spd.value
+
     def add_value_noise_nc(self, mean=0., stddev=1., distribution='normal'):
         self.spd.value = self.spd.value + draw_values_gum(mean, stddev, draws=self.wlElements, distribution=distribution)
         return self.spd.value
@@ -75,6 +79,6 @@ class McSpectrumX(object):
         self.spd.value = draw_values_gum(mean, stddev, draws=1, distribution=distribution)[0] + self.spd.value
         return self.spd.value
 
-    def add_value_fourier_noise(self, ref, number, stddev=1., distribution='normal'):
-        self.spd.value = generate_FourierMC0( number, ref.spd.wl, ref.spd.value, stddev) + self.spd.value
+    def add_value_fourier_noise(self, ref, number, stddev=1.):
+        self.spd.value = (1+generate_FourierMC0( number, ref.spd.wl, stddev)) * self.spd.value
         return self.spd.value

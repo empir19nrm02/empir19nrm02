@@ -38,7 +38,7 @@ def plotHist(data, xLabel='x', yLabel='y', title='title', fileName=None, bins=50
 
 def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCols=0, title=None, with_values=True, fileName=None):
 
-    fig, ax = pyplot.subplots(figsize=(8, 8))
+    fig, ax = pyplot.subplots(figsize=(5, 5))
     ic=corr_data.shape[1]
     data2show=corr_data[iRaws:,:ic-iCols]
     im = ax.imshow(data2show)
@@ -80,7 +80,7 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
     else:
         ax1 = ax
 
-    ax1.hist(data[1:], bins=bins, density=density)
+    ax1.hist(data[1:].flatten(), bins=bins, density=density)
     ax1.set_xlabel(xLabel)
     ax1.set_title(title)
     if yLabel is None:
@@ -102,14 +102,14 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
 
 def plotHistScalesWl(data, fig=None, ax=None, bins=50, density=True,
                      title='Histogram of wavelength scale',
-                     xLabel='$\Delta \lambda / nm$',
+                     xLabel='$\Delta \lambda$ / nm',
                      filename = None):
     plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename)
 
 
 def plotHistScalesValue(data, fig=None, ax=None, bins=50, density=True,
                         title='Histogram of value scale',
-                        xLabel='$\Delta y / a.u.$',
+                        xLabel='$\Delta y$ / A.U.',
                         filename=None):
     plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename)
 
@@ -140,13 +140,13 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
 
     fig = plt.figure(figsize=(10, 10))
 
-    ax1 = plt.subplot(221, constrained_layout=True)
-    ax2 = plt.subplot(222, constrained_layout=True)
-    ax3 = plt.subplot(212, constrained_layout=True)
+    ax1 = plt.subplot(221)
+    ax2 = plt.subplot(222)
+    ax3 = plt.subplot(212)
 
     color = 'tab:red'
     ax3.margins(0.05)
-    ax3.set_xlabel('$\lambda / nm$')
+    ax3.set_xlabel('$\lambda$ / nm')
     ax3.set_ylabel('$\mu$', color=color)
     ax3.plot(wavelength_array, loc_result_sum_mcv[0], color=color)
     ax3.fill_between(wavelength_array, loc_interval[0], loc_interval[1], color=color, alpha=.3)
@@ -163,15 +163,16 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
     else:
         plt.title('Data Statistics Value')
 
+    #vmin=-1, vmax=1,
     im1 = ax2.imshow(corr_image,
                      extent=[wavelength_array[0], wavelength_array[-1], wavelength_array[-1], wavelength_array[0]],
-                     vmin=-1, vmax=1, cmap="jet", interpolation="nearest")
+                     cmap="jet", interpolation="nearest")
     divider = make_axes_locatable(ax2)
     cax = divider.append_axes('right', size='5%', pad=0.05)
     fig.colorbar(im1, cax=cax, orientation='vertical')
     ax2.set_title('Correlation')
-    ax2.set_xlabel('$\lambda / nm$')
-    ax2.set_ylabel('$\lambda / nm$')
+    ax2.set_xlabel('$\lambda$ / nm')
+    ax2.set_ylabel('$\lambda$ / nm')
 
     if wavelength_stat:
         plotHistScalesWl(loc_analyse, ax=ax1)
