@@ -7,7 +7,6 @@
     <orderEntry type="jdk" jdkName="Python 3.9 (19nrm02)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="luxpy" />
-    <orderEntry type="module" module-name="untitled" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="renderExternalDocumentation" value="true" />
