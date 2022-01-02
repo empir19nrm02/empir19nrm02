@@ -132,7 +132,7 @@ def py_f1PrimeG( wlScale, srData, strObserver='1931_2', iObserverOffset = 1, str
 
     # we minimize the usual f1Prime equation varying the dNorm value only
     def dstFunction( dNorm):
-        return np.trapz(abs((srData * dNorm).T - iCmf[iObserverOffset + 1]), wlScale) / sObserver
+        return np.trapz(abs((srData * dNorm).T - iCmf[iObserverOffset + 1]), wlScale)
 
     # Use the Min f1Prime value according to Alejandro Ferrero
     if iMin > 0:

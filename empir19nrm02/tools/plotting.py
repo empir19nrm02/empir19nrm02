@@ -12,26 +12,26 @@ __all__ = ['plotSelectedSPD','plotYxy', 'plotHist', 'plotCorrMatrixSmall',
            'plotHistScales','plotHistScalesWl','plotHistScalesValue',
            'array2analyse','analyse_stat','get_data_step','seaborn_plot_basedata', 'seaborn_plot_result']
 
-def plotSelectedSPD(SPD, iNumber, title='Selected SPD', fileName=None):
+def plotSelectedSPD(SPD, iNumber, title='Selected SPD', fileName=None,fontsize=None):
     pyplot.plot(SPD[0, :], SPD[iNumber, :])
-    pyplot.xlabel('$\lambda$ / nm')
-    pyplot.ylabel('SPD / A.U.')
+    pyplot.xlabel('$\lambda$ / nm', fontsize=fontsize)
+    pyplot.ylabel('SPD / A.U.', fontsize=fontsize)
     pyplot.title(title)
     if fileName != None: pyplot.savefig(fileName)
 
 
-def plotYxy(Yxy, title='xy-plot', fileName=None):
+def plotYxy(Yxy, title='xy-plot', fileName=None, fontsize=None):
     pyplot.plot(Yxy[:, 1], Yxy[:, 2], '*')
-    pyplot.xlabel('x')
-    pyplot.ylabel('y')
+    pyplot.xlabel('x', fontsize=fontsize)
+    pyplot.ylabel('y', fontsize=fontsize)
     pyplot.title(title)
     if fileName != None: pyplot.savefig(fileName)
 
 
-def plotHist(data, xLabel='x', yLabel='y', title='title', fileName=None, bins=50):
+def plotHist(data, xLabel='x', yLabel='y', title='title', fileName=None, bins=50, fontsize=None):
     pyplot.hist(data, bins=bins)
-    pyplot.xlabel(xLabel)
-    pyplot.ylabel(yLabel)
+    pyplot.xlabel(xLabel, fontsize=fontsize)
+    pyplot.ylabel(yLabel, fontsize=fontsize)
     pyplot.title(title)
     if fileName != None: pyplot.savefig(fileName)
 
@@ -74,14 +74,15 @@ def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCo
 
 def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
                    title='Title', xLabel='xLabel', yLabel=None,
-                   filename=None):
+                   filename=None, fontsize=None):
     if ax == None:
         fig, ax1 = plt.subplots()
     else:
         ax1 = ax
 
     ax1.hist(data[1:].flatten(), bins=bins, density=density)
-    ax1.set_xlabel(xLabel)
+    ax1.set_xlabel(xLabel, fontsize=fontsize)
+
     ax1.set_title(title)
     if yLabel is None:
         ax1.set_ylabel('Probability')
@@ -103,15 +104,15 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
 def plotHistScalesWl(data, fig=None, ax=None, bins=50, density=True,
                      title='Histogram of wavelength scale',
                      xLabel='$\Delta \lambda$ / nm',
-                     filename = None):
-    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename)
+                     filename = None, fontsize=None):
+    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename, fontsize=fontsize)
 
 
 def plotHistScalesValue(data, fig=None, ax=None, bins=50, density=True,
                         title='Histogram of value scale',
                         xLabel='$\Delta y$ / A.U.',
-                        filename=None):
-    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename)
+                        filename=None, fontsize=None):
+    plotHistScales(data, fig=fig, ax=ax, bins=bins, density=density, title=title, xLabel=xLabel, filename=filename, fontsize=fontsize)
 
 def array2analyse(spectrumMC, wavelength_stat=True, scale_to_ref=True):
     _trials = len(spectrumMC) - 1
@@ -131,7 +132,7 @@ def array2analyse(spectrumMC, wavelength_stat=True, scale_to_ref=True):
     return loc_analyse
 
 
-def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
+def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, fontsize=None):
     wavelength_array = spectrum_mc[0].spd.wl
     loc_analyse = array2analyse(spectrum_mc, wavelength_stat, scale_to_ref)
 
@@ -146,15 +147,15 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
 
     color = 'tab:red'
     ax3.margins(0.05)
-    ax3.set_xlabel('$\lambda$ / nm')
-    ax3.set_ylabel('$\mu$', color=color)
+    ax3.set_xlabel('$\lambda$ / nm', fontsize=fontsize)
+    ax3.set_ylabel('$\mu$', color=color, fontsize=fontsize)
     ax3.plot(wavelength_array, loc_result_sum_mcv[0], color=color)
     ax3.fill_between(wavelength_array, loc_interval[0], loc_interval[1], color=color, alpha=.3)
     ax3.tick_params(axis='y', labelcolor=color)
 
     ax32 = ax3.twinx()  # instantiate a second axes that shares the same x-axis
     color = 'tab:blue'
-    ax32.set_ylabel('$\sigma$', color=color)  # we already handled the x-label with ax1
+    ax32.set_ylabel('$\sigma$', color=color, fontsize=fontsize)  # we already handled the x-label with ax1
     ax32.plot(wavelength_array, loc_result_sum_mcv[1], color=color)
     ax32.tick_params(axis='y', labelcolor=color)
 
@@ -171,8 +172,8 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True):
     cax = divider.append_axes('right', size='5%', pad=0.05)
     fig.colorbar(im1, cax=cax, orientation='vertical')
     ax2.set_title('Correlation')
-    ax2.set_xlabel('$\lambda$ / nm')
-    ax2.set_ylabel('$\lambda$ / nm')
+    ax2.set_xlabel('$\lambda$ / nm', fontsize=fontsize)
+    ax2.set_ylabel('$\lambda$ / nm', fontsize=fontsize)
 
     if wavelength_stat:
         plotHistScalesWl(loc_analyse, ax=ax1)
