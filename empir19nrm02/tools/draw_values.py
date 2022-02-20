@@ -58,10 +58,18 @@ def draw_values_gum(mean=0, stddev=1, draws=1000, distribution="normal"):
     Implemented are these distribution types: "normal", "uniform" and "triangle"
 
     """
-    if type(mean) != np.ndarray:
+    if len(mean) == 1:
         size = (draws)
+        print ( 'Test auf 1')
     else:
         size = (draws, len(mean))
+        print('Test auf sonst')
+    print( size)
+    print( mean)
+    print( mean.shape)
+    print(stddev)
+    print( stddev.shape)
+    print(size)
     if distribution == "normal":
         samples = stats.norm.rvs(loc=mean, scale=stddev, size=size)
         return samples.T

@@ -11,7 +11,7 @@ import math
 from scipy.optimize import minimize_scalar
 from scipy.fft import fft, ifft, fftfreq
 
-__all__ = ['py_f1Prime', 'py_f1PrimeGlx', 'py_f1PrimeG']
+__all__ = ['py_f1Prime', 'py_f1PrimeGlx', 'py_f1PrimeG', 'py_fsdG']
 
 @xl_func("numpy_array<float> wlScale, numpy_array<float> srData: float")
 def py_f1Prime( wlScale, srData):
@@ -54,6 +54,7 @@ def PadRight(arr):
     deficit = int(math.pow(2, nextPower) - len(arr))
     arr = np.concatenate((arr, np.zeros(deficit, dtype=arr.dtype)))
     return arr
+
 
 
 useAFOrgImplementation = False
@@ -318,3 +319,70 @@ def py_f1PrimeGTestFreq( wlScale, srData, strObserver='1931_2', iObserverOffset 
         f1PrimeGValue = np.trapz(abs(deltaVector), wlScale)
 
     return f1PrimeGValue
+
+
+@xl_func("numpy_array<float> wlScale, numpy_array<float> sdData, string strObserver, int iObserverOffset, \
+          string strTarget: float", auto_resize=True)
+def py_fsdG( wlScale, sdData, strObserver='1931_2', iObserverOffset = 1, strTarget='LED_L41'):
+    """
+    Calculate the general fsd value (spectral distribution mismatch index) with very different versions of target functions, weightings and
+    other ideas from literature.
+
+    Args:
+        :wlScale:
+            | wavelength scale (ndarray, .shape=(n,))
+        :sdData:
+            | spectral distribution data at the point of wlScale (ndarray, .shape=(n,))
+        :strObserver:
+            | Name of the Observer used for the target functions (calibration)
+            | All Observers (color matching functions implemented in  luypy (see lx._CMF.keys())
+            | are supported.
+        :iObserverOffset:
+            | 0 ... xBar
+            | 1 ... yBar (V(Lambda), ...)
+            | 2 ... zBar
+        :strDst:
+            | Dst function for the reference to compare with (Target function for the sd)
+            | All illuminants from luypy are supported (see lx._CIE_ILLUMINANTS.keys()).
+            | Examples:
+            | 'E' ...  No weighting at all
+            | 'A' ...  Weighting with standard illuminant A (the standard weighting)
+            | 'LED_L41' Weighting with illuminant L the future standard illuminant L
+
+    Returns:
+        :returns:
+            | float fsd value
+
+    Examples:
+
+    Note:
+        There is no need that the wlScale is monotone or equidistant. The calculation is done with the trapz
+        integration on the wlScale of the caller. Only the target and weighting functions are interpolated.
+    """
+    res = wlScale.size
+    wlScale = wlScale.reshape(res)
+    #sdData = sdData.reshape(res)
+
+    # calculate the mean step for the data (assume a non equidistant wlScale)
+    deltaLambda = np.mean(np.diff(wlScale))
+
+    # Get CMF from lx
+    lxCmf = lx._CMF[strObserver]
+    # Get the target function from lx
+    lxTarget = lx._CIE_ILLUMINANTS[strTarget]
+
+    # interpolate to srData
+    iCmf = lx.cie_interp(lxCmf['bar'], wlScale, kind='linear')
+    iTarget = lx.cie_interp(lxTarget, wlScale, kind='linear')
+
+    # calculate some temporary sums
+    sProductTarget = np.trapz(iCmf[iObserverOffset + 1] * iTarget[1], wlScale)
+    pRef = (iCmf[iObserverOffset + 1] * iTarget[1])/sProductTarget
+
+    sProductData = np.trapz( iCmf[iObserverOffset + 1]  * sdData, wlScale)
+    sNominator = iCmf[iObserverOffset + 1] * sdData
+    pData = sNominator.T / sProductData
+
+    fsd=np.trapz(abs(pData.T-pRef), wlScale)
+
+    return fsd

@@ -122,7 +122,7 @@ _SPD = {'BB': _SPD_BB,
         'MONOLED': _SPD_MONOLED,
         'OSRAM_MONOLED': _SPD_OSRAM_MONOLED}
 
-# Initialize _SPD :
+# Initialize _RES :
 _RES = {'VLDetectors': _RES_VLDETECTORS,
         'CIES025_VLDetectors': _RES_CIES025_VLDETECTORS,
         'VLSimNoise': _RES_VLNOISESIMULATION,

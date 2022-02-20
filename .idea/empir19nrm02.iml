@@ -4,7 +4,6 @@
     <content url="file://$MODULE_DIR$/../luxpy">
       <sourceFolder url="file://$MODULE_DIR$/../luxpy" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.9 (19nrm02)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="luxpy" />
   </component>
