@@ -42,8 +42,8 @@ __all__ = ['_PKG_PATH','_SEP']
 
 __all__ += ['_SPD_PATH', '_RES_PATH',
            '_SPD', '_RES',
-           '_SPD_BB', '_SPD_PTLED', '_SPD_RGBLED', '_SPD_PHOTOLED', '_SPD_MONOLED', '_SPD_OSRAM_PTLED', '_SPD_OSRAM_MONOLED',
-           '_RES_VLDETECTORS', '_RES_VLNOISESIMULATION', '_RES_VLSHIFTSIMULATION']
+           '_SPD_BB', '_SPD_PTLED', '_SPD_RGBLED', '_SPD_PHOTOLED', '_SPD_MONOLED', '_SPD_OSRAM_PTLED', '_SPD_OSRAM_MONOLED', '_SPD_TC2_90',
+           '_RES_VLDETECTORS', '_RES_VLNOISESIMULATION', '_RES_VLSHIFTSIMULATION', '_RES_TC2_90_VLDETECTORS']
 
 _SPD_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'spd' + _SEP  # folder with spd data
 _RES_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'res' + _SEP  # folder with res data
@@ -58,7 +58,7 @@ _SPD_BB = {'S': {'data': getdata(_SPD_PATH + 'SPD_BB.csv', sep=';',kind='np').tr
 #_SPD_BB['S']['info'] = getdata(_SPD_PATH + 'SPD_BBinfo.txt', kind='np', header='infer', verbosity=False)
 _SPD_BB_S = _SPD_BB['S']
 
-# load PTLED spd data base:
+# load PTLED spd data base used
 _SPD_PTLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_PT_LED_White.csv', sep=';',kind='np').transpose()}}
 _SPD_PTLED_S = _SPD_PTLED['S']
 
@@ -71,6 +71,7 @@ _SPD_CIES025_RGBLED = {'S': {'data': getdata(_SPD_PATH + 'CIES025_SPD_RGB_LED_Wh
 _SPD_CIES025_RGBLED['S']['info'] = getdata(_SPD_PATH + 'CIES025_SPD_RGB_LED_White_Info.txt', kind='np', header='infer', verbosity=False)
 _SPD_CIES025_RGBLED_S = _SPD_CIES025_RGBLED['S']
 
+# load PT LEDs  (original collection used in CIE S 025/E:2015; https://cie.co.at/publications/test-method-led-lamps-led-luminaires-and-led-modules ):
 _SPD_CIES025_PTLED = {'S': {'data': getdata(_SPD_PATH + 'CIES025_SPD_PT_LED_White.csv', sep=';',kind='np').transpose()}}
 _SPD_CIES025_PTLED['S']['info'] = getdata(_SPD_PATH + 'CIES025_SPD_PT_LED_White_Info.txt', kind='np', header='infer', verbosity=False)
 _SPD_CIES025_PTLED_S = _SPD_CIES025_PTLED['S']
@@ -84,7 +85,15 @@ _SPD_OSRAM_PTLED_S = _SPD_OSRAM_PTLED['S']
 _SPD_PHOTOLED = {'S': {'data': getdata(_SPD_PATH + 'EMPIR_PhotoLED_SPECTRAL_DATABASE.csv', sep=';',kind='np').transpose()}}
 _SPD_PHOTOLED_S = _SPD_PHOTOLED['S']
 
+# load LED spd data base (TC2-90 a subset of PhotoLED)
+_SPD_TC2_90 = {'S': {'data': getdata(_SPD_PATH + 'TC2_90_SPDs.csv', sep=';',kind='np').transpose()}}
+_SPD_TC2_90_S = _SPD_TC2_90['S']
+
+
 # load Mono LED spd data base:
+# own measurements further dataollected from:
+# Schanda et.al., https://e2e.ti.com/cfs-file/__key/communityserver-discussions-components-files/1023/2004_5F00_Goodness_5F00_of_5F00_Fit_5F00_Photometers.pdf
+# Xu G-Q, Zhang J-H, Cao G-Y, Xing M-S, Li D-S, Yu J-J. Solar spectrum matching using monochromatic LEDs. Lighting Research & Technology. 2017;49(4):497-507. doi:10.1177/1477153516628330 )
 _SPD_MONOLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_LED_Mono.csv', sep=';',kind='np').transpose()}}
 _SPD_MONOLED_S = _SPD_MONOLED['S']
 
@@ -97,6 +106,10 @@ _SPD_OSRAM_MONOLED_S = _SPD_OSRAM_MONOLED['S']
 # load VL Detectors (current collection):
 _RES_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'VL_Detectors.csv', sep=';',kind='np').transpose()}}
 _RES_VLDETECTORS_S = _RES_VLDETECTORS['S']
+
+# load VL Detectors (TC2-90):
+_RES_TC2_90_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'VL_TC2_90_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_TC2_90_VLDETECTORS_S = _RES_TC2_90_VLDETECTORS['S']
 
 # load VL Detectors (original collection used in CIE S 025/E:2015; https://cie.co.at/publications/test-method-led-lamps-led-luminaires-and-led-modules ):
 _RES_CIES025_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'CIES025_VL_Detectors.csv', sep=';',kind='np').transpose()}}
@@ -119,11 +132,13 @@ _SPD = {'BB': _SPD_BB,
         'RGBLED': _SPD_RGBLED,
         'CIES025_RGBLED': _SPD_CIES025_RGBLED,
         'PHOTOLED': _SPD_PHOTOLED,
+        'TC2_90': _SPD_TC2_90,
         'MONOLED': _SPD_MONOLED,
         'OSRAM_MONOLED': _SPD_OSRAM_MONOLED}
 
 # Initialize _RES :
 _RES = {'VLDetectors': _RES_VLDETECTORS,
+        'TC2_90_VLDetectors': _RES_TC2_90_VLDETECTORS,
         'CIES025_VLDetectors': _RES_CIES025_VLDETECTORS,
         'VLSimNoise': _RES_VLNOISESIMULATION,
         'VLSimShift': _RES_VLSHIFTSIMULATION}

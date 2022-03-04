@@ -325,8 +325,10 @@ def py_f1PrimeGTestFreq( wlScale, srData, strObserver='1931_2', iObserverOffset 
           string strTarget: float", auto_resize=True)
 def py_fsdG( wlScale, sdData, strObserver='1931_2', iObserverOffset = 1, strTarget='LED_L41'):
     """
-    Calculate the general fsd value (spectral distribution mismatch index) with very different versions of target functions, weightings and
-    other ideas from literature.
+    Calculate the general fsd value (spectral distribution mismatch index) see TC2-90 and
+    Alejandro Ferrero et al.: DEFINITION OF A SPECTRAL MISMATCH INDEX FOR SPECTRAL POWER DISTRIBUTIONS, CIE x046:2019
+    Proceedings of the 29th CIE SESSION Washington D.C., USA, June 14 – 22, 2019
+    DOI: 10.25039/x46.2019.OP15
 
     Args:
         :wlScale:
@@ -361,7 +363,6 @@ def py_fsdG( wlScale, sdData, strObserver='1931_2', iObserverOffset = 1, strTarg
     """
     res = wlScale.size
     wlScale = wlScale.reshape(res)
-    #sdData = sdData.reshape(res)
 
     # calculate the mean step for the data (assume a non equidistant wlScale)
     deltaLambda = np.mean(np.diff(wlScale))
