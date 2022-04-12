@@ -89,11 +89,13 @@ _SPD_PHOTOLED_S = _SPD_PHOTOLED['S']
 _SPD_TC2_90 = {'S': {'data': getdata(_SPD_PATH + 'TC2_90_SPDs.csv', sep=';',kind='np').transpose()}}
 _SPD_TC2_90_S = _SPD_TC2_90['S']
 
-
 # load Mono LED spd data base:
-# own measurements further dataollected from:
+# Some modeled LED Data
+# own measurements and further data collected from:
 # Schanda et.al., https://e2e.ti.com/cfs-file/__key/communityserver-discussions-components-files/1023/2004_5F00_Goodness_5F00_of_5F00_Fit_5F00_Photometers.pdf
 # Xu G-Q, Zhang J-H, Cao G-Y, Xing M-S, Li D-S, Yu J-J. Solar spectrum matching using monochromatic LEDs. Lighting Research & Technology. 2017;49(4):497-507. doi:10.1177/1477153516628330 )
+# Nichia
+# Osram
 _SPD_MONOLED = {'S': {'data': getdata(_SPD_PATH + 'SPD_LED_Mono.csv', sep=';',kind='np').transpose()}}
 _SPD_MONOLED_S = _SPD_MONOLED['S']
 
@@ -106,6 +108,24 @@ _SPD_OSRAM_MONOLED_S = _SPD_OSRAM_MONOLED['S']
 # load VL Detectors (current collection):
 _RES_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'VL_Detectors.csv', sep=';',kind='np').transpose()}}
 _RES_VLDETECTORS_S = _RES_VLDETECTORS['S']
+
+_RES_XDETECTORS = {'S': {'data': getdata(_RES_PATH + 'X_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_XDETECTORS_S = _RES_XDETECTORS['S']
+
+_RES_YDETECTORS = {'S': {'data': getdata(_RES_PATH + 'Y_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_YDETECTORS_S = _RES_YDETECTORS['S']
+
+_RES_ZDETECTORS = {'S': {'data': getdata(_RES_PATH + 'Z_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_ZDETECTORS_S = _RES_ZDETECTORS['S']
+
+_RES_BLHDETECTORS = {'S': {'data': getdata(_RES_PATH + 'BLH_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_BLHDETECTORS_S = _RES_BLHDETECTORS['S']
+
+_RES_VSDETECTORS = {'S': {'data': getdata(_RES_PATH + 'VS_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_VSDETECTORS_S = _RES_VSDETECTORS['S']
+
+_RES_SMELDETECTORS = {'S': {'data': getdata(_RES_PATH + 'SMEL_Detectors.csv', sep=';',kind='np').transpose()}}
+_RES_SMELDETECTORS_S = _RES_SMELDETECTORS['S']
 
 # load VL Detectors (TC2-90):
 _RES_TC2_90_VLDETECTORS = {'S': {'data': getdata(_RES_PATH + 'VL_TC2_90_Detectors.csv', sep=';',kind='np').transpose()}}
@@ -138,6 +158,12 @@ _SPD = {'BB': _SPD_BB,
 
 # Initialize _RES :
 _RES = {'VLDetectors': _RES_VLDETECTORS,
+        'XDetectors': _RES_XDETECTORS,
+        'YDetectors': _RES_YDETECTORS,
+        'ZDetectors': _RES_ZDETECTORS,
+        'BLHDetectors': _RES_BLHDETECTORS,
+        'VSDetectors': _RES_VSDETECTORS,
+        'SMELDetectors': _RES_SMELDETECTORS,
         'TC2_90_VLDetectors': _RES_TC2_90_VLDETECTORS,
         'CIES025_VLDetectors': _RES_CIES025_VLDETECTORS,
         'VLSimNoise': _RES_VLNOISESIMULATION,
