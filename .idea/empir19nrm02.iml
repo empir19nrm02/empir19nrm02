@@ -4,6 +4,7 @@
     <content url="file://$MODULE_DIR$/../luxpy">
       <sourceFolder url="file://$MODULE_DIR$/../luxpy" isTestSource="false" />
     </content>
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="luxpy" />
   </component>
