@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../MetroloPy/.idea/MetroloPy.iml" filepath="$PROJECT_DIR$/../MetroloPy/.idea/MetroloPy.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../Moire/.idea/Moire.iml" filepath="$PROJECT_DIR$/../Moire/.idea/Moire.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/empir19nrm02.iml" filepath="$PROJECT_DIR$/.idea/empir19nrm02.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../gPRC/.idea/gPRC.iml" filepath="$PROJECT_DIR$/../gPRC/.idea/gPRC.iml" />
       <module fileurl="file://$PROJECT_DIR$/../luxpy/.idea/luxpy.iml" filepath="$PROJECT_DIR$/../luxpy/.idea/luxpy.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../technopy/.idea/technopy.iml" filepath="$PROJECT_DIR$/../technopy/.idea/technopy.iml" />
     </modules>
   </component>
 </project>

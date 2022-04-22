@@ -138,6 +138,7 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, fontsize=
 
     [loc_result_sum_mcv, loc_interval] = sumMCV(loc_analyse, Coverage=0.95)
     corr_image = np.corrcoef(loc_analyse.T)
+    cov_image = np.cov(loc_analyse.T)
 
     fig = plt.figure(figsize=(10, 10))
 
@@ -182,6 +183,8 @@ def analyse_stat(spectrum_mc, wavelength_stat=True, scale_to_ref=True, fontsize=
 
     plt.tight_layout()  # otherwise the right y-label is slightly clipped
 
+    return wavelength_array, loc_result_sum_mcv, cov_image, corr_image
+
 def get_data_step(size_to_minimize, max_data_to_display=1000):
     if size_to_minimize < max_data_to_display:
         step = 1
@@ -210,16 +213,17 @@ def seaborn_plot_basedata(loc_array, wavelength_to_observe=550, filename=None):
 
 def seaborn_plot_result(loc_result, filename=None):
     disp_array_count, step = get_data_step(loc_result.shape[1])
-    disp_array = np.zeros((3, disp_array_count - 1))
+    disp_array = np.zeros((4, disp_array_count - 1))
     for i in range(disp_array_count - 1):
         disp_array[0, i] = loc_result[0, i * step + 1] / loc_result[0, 0]
         disp_array[1, i] = loc_result[1, i * step + 1] - loc_result[1, 0]
         disp_array[2, i] = loc_result[2, i * step + 1] - loc_result[2, 0]
+        disp_array[3, i] = loc_result[3, i * step + 1] - loc_result[3, 0]
 
     sns.set_theme(style="ticks")
-    df = pd.DataFrame(data=disp_array.T, columns=['$Y_{\mathrm{rel}} / A.U.$', '$\Delta x$', '$\Delta y$'])
+    df = pd.DataFrame(data=disp_array.T, columns=['$Y_{\mathrm{rel}} / A.U.$', '$\Delta x$', '$\Delta y$', '$\Delta CCT$'])
     grid = sns.pairplot(df, corner=True)
-    plotTitle = 'Observation Yxy result'
+    plotTitle = 'Observation Yxy, CCT result'
     grid.fig.suptitle(plotTitle.format())
     if filename is not None:
         grid.fig.savefig(filename)

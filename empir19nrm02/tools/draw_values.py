@@ -27,6 +27,7 @@ Overview:
 """
 
 import numpy as np
+import pandas
 import scipy.stats as stats
 import math
 
@@ -58,18 +59,11 @@ def draw_values_gum(mean=0, stddev=1, draws=1000, distribution="normal"):
     Implemented are these distribution types: "normal", "uniform" and "triangle"
 
     """
-    if len(mean) == 1:
-        size = (draws)
-        print ( 'Test auf 1')
-    else:
+    try:
         size = (draws, len(mean))
-        print('Test auf sonst')
-    print( size)
-    print( mean)
-    print( mean.shape)
-    print(stddev)
-    print( stddev.shape)
-    print(size)
+    except (TypeError, AttributeError) as e:
+        size = (draws)
+
     if distribution == "normal":
         samples = stats.norm.rvs(loc=mean, scale=stddev, size=size)
         return samples.T
@@ -159,3 +153,21 @@ def sumMCV(InputValues, Coverage=0.95):
     # Summarizing the total output
     output = [values, interval]
     return (output)
+
+
+if __name__ == '__main__':
+    # Test the default values
+    res1=draw_values_gum()
+    [data1, interval1] = sumMC( res1)
+    print ('Mean1:', data1[0], 'StdDev:', data1[1], 'Interval:', interval1[0], interval1[1])
+
+    # test a 1D Array for mean / stddev
+    mean = np.array([1, 2])
+    stddev = np.array([2,3])
+    draws=1000
+    dist = 'normal'
+    res2=draw_values_gum(mean=mean, stddev=stddev, draws=draws, distribution=dist)
+    [data2, interval2] = sumMC( res2[0])
+    print ('Mean2:', data2[0], 'StdDev:', data2[1], 'Interval:', interval2[0], interval2[1])
+    [data3, interval3] = sumMC( res2[1])
+    print ('Mean3:', data3[0], 'StdDev:', data3[1], 'Interval:', interval3[0], interval3[1])

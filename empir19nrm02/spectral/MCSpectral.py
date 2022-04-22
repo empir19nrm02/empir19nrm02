@@ -71,6 +71,10 @@ class McSpectrumX(object):
         self.spd.wl = generate_FourierMC0( number, ref.spd.wl, stddev) + self.spd.wl
         return self.spd.value
 
+    def add_value_noise(self, noise):
+        self.spd.value = self.spd.value + noise
+        return self.spd.value
+
     def add_value_noise_nc(self, mean=0., stddev=1., distribution='normal'):
         self.spd.value = self.spd.value + draw_values_gum(mean, stddev, draws=self.wlElements, distribution=distribution)
         return self.spd.value
@@ -82,3 +86,4 @@ class McSpectrumX(object):
     def add_value_fourier_noise(self, ref, number, stddev=1.):
         self.spd.value = (1+generate_FourierMC0( number, ref.spd.wl, stddev)) * self.spd.value
         return self.spd.value
+
