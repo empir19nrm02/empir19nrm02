@@ -2,6 +2,8 @@ from matplotlib import pyplot
 import luxpy as lx
 import numpy as np
 from luxpy import _CMF, plot_spectrum_colors
+import scipy
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 quantil = 0.05
 dCutOff=0.003
@@ -40,7 +42,10 @@ def get_fig_file_name(dir=None, filename=None, table=False):
         fig_number+=1
     else:
         if table:
-            file_name = dir + r'\Table' + filename + table_type
+            if 'xls' in filename:
+                file_name = dir + r'\Table' + filename
+            else:
+                file_name = dir + r'\Table' + filename + table_type
         else:
             file_name = dir + r'\Fig' + filename + fig_type
     return file_name
@@ -184,3 +189,14 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2, ou
     f1p=lx.spectral_mismatch_and_uncertainty.f1prime(detectors, S_C='A', cieobs=cieobs, s_target_index=s_target_index)
     print(f1p)
 
+def plotCorrelation( image, wl_scale, name):
+    fig, ax1 = pyplot.subplots(figsize=(7,7))
+    im1 = ax1.imshow(image,
+                 extent=[wl_scale[0], wl_scale[-1], wl_scale[-1], wl_scale[0]],
+                 cmap="jet", interpolation="nearest")
+    divider = make_axes_locatable(ax1)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    fig.colorbar(im1, cax=cax, orientation='vertical')
+    ax1.set_title(name)
+    ax1.set_xlabel('$\lambda$ / nm', fontsize=label_font_size)
+    ax1.set_ylabel('$\lambda$ / nm', fontsize=label_font_size)

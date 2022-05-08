@@ -2,5 +2,4 @@
 *.pyc
 *.npy
 *.svg
-/empir19nrm02/data/RES/AF_Detectors_k.csv
-/empir19nrm02/data/RES/BLH_Detectors_k.csv
+*_k.csv
