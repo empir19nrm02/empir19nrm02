@@ -154,8 +154,7 @@ def sumMCV(InputValues, Coverage=0.95):
     output = [values, interval]
     return (output)
 
-
-if __name__ == '__main__':
+def main():
     # Test the default values
     res1=draw_values_gum()
     [data1, interval1] = sumMC( res1)
@@ -171,3 +170,7 @@ if __name__ == '__main__':
     print ('Mean2:', data2[0], 'StdDev:', data2[1], 'Interval:', interval2[0], interval2[1])
     [data3, interval3] = sumMC( res2[1])
     print ('Mean3:', data3[0], 'StdDev:', data3[1], 'Interval:', interval3[0], interval3[1])
+
+
+if __name__ == '__main__':
+    main()
