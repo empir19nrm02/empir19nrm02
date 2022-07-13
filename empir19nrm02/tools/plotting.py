@@ -7,15 +7,29 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from sigfig import round
 
 from .draw_values import sumMC, sumMCV
+from .help import label_font_size
 
-__all__ = ['plotSelectedSPD','plotYxy', 'plotHist', 'plotCorrMatrixSmall',
-           'plotHistScales','plotHistScalesWl','plotHistScalesValue',
+__all__ = ['plotSelectedSPD','plotSPDs','plotYxy', 'plotHist', 'plotCorrMatrixSmall',
+           'plotHistScales','plotHistScalesWl','plotHistScalesValue','confidence_ellipse','aspectratio_to_one','plot_2D',
            'array2analyse','analyse_stat','get_data_step','seaborn_plot_basedata', 'seaborn_plot_result']
+
+def plotSPDs(SPDs, title='SDs', fileName=None,fontsize=None, normalize = True, log=False):
+    for i in range(1,SPDs.shape[0]):
+        if normalize:
+            pyplot.plot(SPDs[0, :], SPDs[i, :]/np.max(SPDs[i, :]))
+        else:
+            pyplot.plot(SPDs[0, :], SPDs[i, :])
+    pyplot.xlabel('$\lambda$ / nm', fontsize=fontsize)
+    pyplot.ylabel('spectral distribution / A.U.', fontsize=fontsize)
+    pyplot.title(title)
+    if log:
+        pyplot.yscale('log')
+    if fileName != None: pyplot.savefig(fileName)
 
 def plotSelectedSPD(SPD, iNumber, title='Selected SPD', fileName=None,fontsize=None):
     pyplot.plot(SPD[0, :], SPD[iNumber, :])
     pyplot.xlabel('$\lambda$ / nm', fontsize=fontsize)
-    pyplot.ylabel('SPD / A.U.', fontsize=fontsize)
+    pyplot.ylabel('spectral distribution / A.U.', fontsize=fontsize)
     pyplot.title(title)
     if fileName != None: pyplot.savefig(fileName)
 
@@ -41,7 +55,7 @@ def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCo
     fig, ax = pyplot.subplots(figsize=(5, 5))
     ic=corr_data.shape[1]
     data2show=corr_data[iRaws:,:ic-iCols]
-    im = ax.imshow(data2show)
+    im = ax.imshow(data2show, cmap=pyplot.get_cmap('summer'))
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     fig.colorbar(im, cax=cax)
@@ -69,6 +83,7 @@ def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCo
                 ax.text(j, i, strOut, ha="center", va="center", color="r")
     ax.set_title(title)
     fig.tight_layout()
+    pyplot.grid(False)
     if fileName is not None:
         pyplot.savefig(fileName)
 
@@ -227,3 +242,76 @@ def seaborn_plot_result(loc_result, filename=None):
     grid.fig.suptitle(plotTitle.format())
     if filename is not None:
         grid.fig.savefig(filename)
+
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
+
+# THX: https://matplotlib.org/devdocs/gallery/statistics/confidence_ellipse.html
+def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
+    """
+    Create a plot of the covariance confidence ellipse of *x* and *y*.
+
+    Parameters
+    ----------
+    x, y : array-like, shape (n, )
+        Input data.
+
+    ax : matplotlib.axes.Axes
+        The axes object to draw the ellipse into.
+
+    n_std : float
+        The number of standard deviations to determine the ellipse's radiuses.
+
+    **kwargs
+        Forwarded to `~matplotlib.patches.Ellipse`
+
+    Returns
+    -------
+    matplotlib.patches.Ellipse
+    """
+    if x.size != y.size:
+        raise ValueError("x and y must be the same size")
+
+    cov = np.cov(x, y)
+    pearson = cov[0, 1]/np.sqrt(cov[0, 0] * cov[1, 1])
+    # Using a special case to obtain the eigenvalues of this
+    # two-dimensionl dataset.
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse((0, 0), width=ell_radius_x * 2, height=ell_radius_y * 2,
+                      facecolor=facecolor, fill=False, **kwargs)
+
+    # Calculating the stdandard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = np.sqrt(cov[0, 0]) * n_std
+    mean_x = np.mean(x)
+
+    # calculating the stdandard deviation of y ...
+    scale_y = np.sqrt(cov[1, 1]) * n_std
+    mean_y = np.mean(y)
+
+    transf = transforms.Affine2D() \
+        .rotate_deg(45) \
+        .scale(scale_x, scale_y) \
+        .translate(mean_x, mean_y)
+
+    ellipse.set_transform(transf + ax.transData)
+    return ax.add_patch(ellipse)
+
+# THX: https://stackoverflow.com/questions/7965743/how-can-i-set-the-aspect-ratio-in-matplotlib
+def aspectratio_to_one( ax):
+    ratio = 1.0
+    x_left, x_right = ax.get_xlim()
+    y_low, y_high = ax.get_ylim()
+    ax.set_aspect(abs((x_right-x_left)/(y_low-y_high))*ratio)
+
+def plot_2D( inVec):
+    fig, ax1 = pyplot.subplots()
+    ax1.plot(inVec.val[:,0], inVec.val[:,1], 'rx' , label = 'Label')
+    confidence_ellipse(inVec.val[:,0], inVec.val[:,1], ax1, n_std=2.45, edgecolor='k')
+    ax1.grid(visible=True)
+    ax1.legend()
+    ax1.set_xlabel('x', fontsize=label_font_size)
+    ax1.set_ylabel('y', fontsize=label_font_size)
+    aspectratio_to_one(ax1)

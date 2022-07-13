@@ -30,6 +30,9 @@ table_type= '.csv'
 
 label_font_size=14
 
+__all__ = ['label_font_size','strd', 'get_fig_file_name', 'save_fig', 'plot_cmf2','get_target','label_management',
+           'display_responsivity','plotCorrelation']
+
 
 #pyplot.rcParams["figure.figsize"] = (7,7)
 #pyplot.rcParams["figure.figsize"] = pyplot.rcParamsDefault["figure.figsize"]

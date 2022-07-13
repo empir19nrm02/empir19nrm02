@@ -6,3 +6,6 @@ __all__ += plotting.__all__
 
 from .nearestcorr import *
 __all__ += nearestcorr.__all__
+
+from .help import *
+__all__ += help.__all__

@@ -32,3 +32,6 @@ __all__ += ['f1prime']
 from empir19nrm02.spectral.spectral_data import _SPD, _RES
 __all__ += ['_SPD', '_RES']
 
+import empir19nrm02.MC
+__all__ += MC.__all__
+__all__ += ['MC']
