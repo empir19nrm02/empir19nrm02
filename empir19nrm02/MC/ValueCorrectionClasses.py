@@ -15,6 +15,8 @@ Module for class functionality for ValueCorrections
 import numpy as np
 import luxpy as lx
 import scipy
+import pickle
+
 from matplotlib import pyplot
 from numpy import ndarray
 from numpy.polynomial import Polynomial
@@ -142,6 +144,20 @@ class ValueCorrectionNonLinearity(ValueCorrection):
         # make a regression
         self.series=self.poly.fit(x_prime_t, x_t, deg=self.n, domain=domain)
         return self.series
+
+    def pickle(self, filename = None):
+        if filename is None:
+            filename = 'ValueCorrectionNonLinearity.pkl'
+        f = open(filename, 'wb')
+        pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+
+    @staticmethod
+    def unpickle(filename=None):
+        if filename is None:
+            filename = 'ValueCorrectionNonLinearity.pkl'
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+
 
 class WavelengthCalib(object):
     """

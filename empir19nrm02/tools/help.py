@@ -53,9 +53,13 @@ def get_fig_file_name(dir=None, filename=None, table=False):
             file_name = dir + r'\Fig' + filename + fig_type
     return file_name
 
-def save_fig(dir = None, filename=None):
-    pyplot.savefig( get_fig_file_name(dir=dir, filename=filename), bbox_inches='tight', pad_inches=0)
-    pyplot.show()
+def save_fig(dir = None, filename=None, fig=None):
+    if fig is None:
+        pyplot.savefig( get_fig_file_name(dir=dir, filename=filename), bbox_inches='tight', pad_inches=0)
+        pyplot.show()
+    else:
+        fig.savefig( get_fig_file_name(dir=dir, filename=filename), bbox_inches='tight', pad_inches=0)
+        fig.show()
 
 def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colors = ['r-', 'g-','b-'], single = False, spectrum_color = True):
     if ax is None:
