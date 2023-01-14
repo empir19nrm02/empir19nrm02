@@ -199,6 +199,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2, ou
     # short evaluation with f1p values (calibration A, for the selected target function and observer)
     f1p=lx.spectral_mismatch_and_uncertainty.f1prime(detectors, S_C='A', cieobs=cieobs, s_target_index=s_target_index)
     print(f1p)
+    return detectorNorm, f1p
 
 def plotCorrelation( image, wl_scale, name):
     fig, ax1 = pyplot.subplots(figsize=(7,7))
