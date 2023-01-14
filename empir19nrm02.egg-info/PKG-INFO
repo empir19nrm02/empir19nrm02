@@ -1,14 +1,12 @@
-Metadata-Version: 1.2
+Metadata-Version: 2.1
 Name: empir19nrm02
 Version: 0.0.2
 Summary: Meausrement Uncertainty for EMPIR 19nrm02
 Home-page: https://github.com/UdoKrueger/empir19nrm02
 Author: Udo Krüger
 Author-email: udo.krueger@technoteam.de
-License: UNKNOWN
-Description: UNKNOWN
 Keywords: color,colorimetry,photometry,CIE,spectral data,measurement uncertainty
-Platform: UNKNOWN
 Classifier: Development Status :: 1 - Planning
 Classifier: Programming Language :: Python :: 3
 Requires-Python: >=3.5
+License-File: LICENSE
