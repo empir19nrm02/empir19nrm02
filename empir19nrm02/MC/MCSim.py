@@ -21,7 +21,7 @@ from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumM
 import numpy as np
 import luxpy as lx
 
-__all__ = ['DistributionParam','NameUnit','McVar','McInputVar','McOutputVar', 'McSpectrumVar','McSim']
+__all__ = ['DistributionParam','NameUnit','McVar','McInputVar','McOutputVar', 'McSpectrumVar','McSim', 'noise_list_default']
 
 default_trials:int = 10000
 
@@ -252,6 +252,7 @@ class McSpectrumVar(McVar):
         return
 
     def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
+        #print('generate_numbers:', self.name)
         super().generate_numbers(trials, step, file)
         self.val = np.empty(self.trials, dtype=object)
         # This handles the 0 index object automatically
@@ -362,7 +363,7 @@ class McSim(object):
                     else:
                         x = x0.copy()
                         x[k] = self.input_var[k][i]
-                #print ( 'x before model (i,k):', i, k, x)
                 res = model(*x)
-                for j, var in enumerate(self.output_var[k]):
-                    var[i] = res[j]
+                #ToDo: funktioniert noch nicht für Vectoren am Ausgang, daher Einzelelemente nehmen
+                for j, var_out in enumerate(self.output_var[k]):
+                    var_out[i] = res[j]

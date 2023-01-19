@@ -1,7 +1,7 @@
 from matplotlib import pyplot
 import luxpy as lx
 import numpy as np
-from luxpy import _CMF, plot_spectrum_colors
+from luxpy import _CMF, plot_spectrum_colors, plot_color_data
 import scipy
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -31,7 +31,7 @@ table_type= '.csv'
 label_font_size=14
 
 __all__ = ['label_font_size','strd', 'get_fig_file_name', 'save_fig', 'plot_cmf2','get_target','label_management',
-           'display_responsivity','plotCorrelation']
+           'display_responsivity','plotCorrelation', 'aspectratio_to_one', 'display_spectra', 'display_color_diagram']
 
 
 #pyplot.rcParams["figure.figsize"] = (7,7)
@@ -78,7 +78,7 @@ def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colo
             plot_spectrum_colors(spdmax=np.max(_CMF[name]['bar'][3]), axh = ax, wavelength_height = -0.05)
 
     ax.set_xlabel(strd['xlambda'], fontsize=label_font_size)
-    ax.set_ylabel('Sensitivity', fontsize=label_font_size)
+    ax.set_ylabel('Responsivity', fontsize=label_font_size)
     ax.legend()
     return ax
 
@@ -173,6 +173,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2, ou
         pyplot.ylabel(strd['srelLambda'],fontsize=label_font_size)
         pyplot.xlabel(strd['xlambda'],fontsize=label_font_size)
         pyplot.legend()
+        pyplot.tick_params(axis='both', direction='out')
         if out_dir is not None:
             save_fig( out_dir, name+'_all')
 
@@ -185,11 +186,13 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2, ou
         ax1.plot(target[0], target[1], 'g-', label= r'target')
         ax1.set_ylabel(strd['srelLambda'],fontsize=label_font_size)
         ax1.set_xlabel(strd['xlambda'],fontsize=label_font_size)
+        ax1.tick_params(axis='both', direction='out')
 
         ax2 = ax1.twinx()
         ax2.plot(detectorNorm[0], np.std(detectorNorm[1:,:], axis=0), 'r', label=r'$\sigma({s}_{\mathrm{rel}}^{\mathrm{L41}}(\lambda)$)')
         ax2.set_ylabel('$\sigma(s_{\mathrm{rel}}^{\mathrm{L41}}(\lambda))$',fontsize=label_font_size)
 
+        ax2.tick_params(axis='both', direction='out')
 
         [lines, labels]=label_management( fig, ax2, 'red')
         fig.legend(lines, labels, bbox_to_anchor=(0.65, 0.55, 0.4, 0.3), loc='upper left')
@@ -212,3 +215,34 @@ def plotCorrelation( image, wl_scale, name):
     ax1.set_title(name)
     ax1.set_xlabel('$\lambda$ / nm', fontsize=label_font_size)
     ax1.set_ylabel('$\lambda$ / nm', fontsize=label_font_size)
+
+# THX: https://stackoverflow.com/questions/7965743/how-can-i-set-the-aspect-ratio-in-matplotlib
+def aspectratio_to_one( ax):
+    ratio = 1.0
+    x_left, x_right = ax.get_xlim()
+    y_low, y_high = ax.get_ylim()
+    ax.set_aspect(abs((x_right-x_left)/(y_low-y_high))*ratio)
+
+def display_color_diagram( spd, _spectra, cspace = 'Yxy'):
+    axh = lx.plotSL(cspace =cspace,show =False,BBL =True,DL =True, diagram_colors=True)
+    pyplot.figure(figsize=(10,10))
+    if cspace == 'Yxy':
+        DataCSpace=lx.xyz_to_Yxy(lx.spd_to_xyz(_spectra))
+        axh.set_xlim(0, 0.9)
+        axh.set_ylim(0, 0.9)
+    elif cspace == 'Yuv76':
+        DataCSpace=lx.xyz_to_Yuv76(lx.spd_to_xyz(_spectra))
+        axh.set_xlim(0, 0.7)
+        axh.set_ylim(0, 0.7)
+    else:
+        print( 'ColorSpace: %s not supported' %(cspace))
+    aspectratio_to_one( axh)
+    plot_color_data(DataCSpace[:,1], DataCSpace[:,2], cspace=cspace, formatstr ='kx',label =spd, axh=axh)
+    lx.plot_chromaticity_diagram_colors(axh=axh, cspace=cspace)
+
+def display_spectra( spd, _spectra, curvenumber = 10):
+    s_number = _spectra.shape[0]-1
+    for i in np.linspace( 2, s_number, curvenumber):
+        pyplot.plot(_spectra[0], _spectra[int(i)]/np.max(_spectra[int(i)]))
+    pyplot.ylabel(strd['SDLambda'],fontsize=label_font_size)
+    pyplot.xlabel(strd['xlambda'],fontsize=label_font_size)
