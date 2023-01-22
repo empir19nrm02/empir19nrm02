@@ -304,14 +304,19 @@ def aspectratio_to_one( ax):
     ratio = 1.0
     x_left, x_right = ax.get_xlim()
     y_low, y_high = ax.get_ylim()
+    print( x_left, x_right, y_low, y_high)
+    print( (abs((x_right-x_left)/(y_low-y_high))))
     ax.set_aspect(abs((x_right-x_left)/(y_low-y_high))*ratio)
 
-def plot_2D( inVec):
+def plot_2D( inVec, number = 100):
     fig, ax1 = pyplot.subplots()
-    ax1.plot(inVec.val[:,0], inVec.val[:,1], 'rx' , label = 'Label')
+    _, step = get_data_step(len(inVec.val[:,0]), number)
+    ax1.plot(inVec.val[::step,0], inVec.val[::step,1], 'rx' , label = 'Label')
     confidence_ellipse(inVec.val[:,0], inVec.val[:,1], ax1, n_std=2.45, edgecolor='k')
     ax1.grid(visible=True)
     ax1.legend()
     ax1.set_xlabel('x', fontsize=label_font_size)
     ax1.set_ylabel('y', fontsize=label_font_size)
-    aspectratio_to_one(ax1)
+    ax1.set_aspect('equal')
+    #aspectratio_to_one(ax1)
+

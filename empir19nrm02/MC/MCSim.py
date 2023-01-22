@@ -12,16 +12,19 @@ Module for class functionality for MC Simulations
 
 from dataclasses import dataclass
 import copy
-from luxpy import SPD
-from scipy.stats import stats
-import math
-import traceback
-from abc import ABC
-from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumMCV
-import numpy as np
-import luxpy as lx
 
-__all__ = ['DistributionParam','NameUnit','McVar','McInputVar','McOutputVar', 'McSpectrumVar','McSim', 'noise_list_default']
+from luxpy import SPD
+import traceback
+from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumMCV
+from empir19nrm02.tools import  plot_2D
+from empir19nrm02.MC import  generate_FourierMC0
+import numpy as np
+from numpy import ndarray
+import luxpy as lx
+import pickle
+
+
+__all__ = ['DistributionParam','NameUnit','McVar', 'MCVectorVar', 'McSpectrumVar','McSim', 'noise_list_default']
 
 default_trials:int = 10000
 
@@ -32,66 +35,119 @@ class   DistributionParam(object):
         self.stddev = stddev
         self.distribution = distribution
         self.add_params = add_params
-
+    def __str__(self):
+        return 'Distribution: Mean:{0:.4f}, StdDev: {1:.4f}, Dist: {2}, Add_Param: {3}'.format(self.mean, self.stddev, self.distribution, self.add_params)
 @dataclass
 class   NameUnit(object):
     name: str = 'Name'
     unit: str = 'Unit'
 
-class McVar(ABC):
-    def __init__(self, name:NameUnit = None):
+
+# with help from https://schurpf.com/python-save-a-class/
+
+class McVar(object):
+    def __init__(self, name:NameUnit = None, distribution: DistributionParam = None):
         self.name:NameUnit = name
         self.trials:int = 0
         self.step:int = 0
-        self.file:str = None
         self.val = None
+        self.distribution = distribution
+        self.file = None
+
     def __getitem__(self, item):
         return self.val[item]
     def __setitem__(self, key, value):
         self.val[key] = value
+    def allocate(self, trials:int = default_trials, step:int = 0):
+        self.val = np.zeros(trials)
     def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
         self.trials = trials
         self.step = step
-        self.file = file
 
-    def print_stat(self):
-        # with help from https://schurpf.com/python-save-a-class/
-        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
-        def_name = text[:text.find('=')].strip()
-        [values, interval] = sumMC(self.val)
-        print ('Name:', def_name, self.name, 'Values:', values, 'Interval:', interval)
-
-class McInputVar(McVar):
-    def __init__(self,  name:NameUnit = None, distribution: DistributionParam = DistributionParam()):
-        super().__init__(name = name)
-        self.distribution = distribution
-
-    def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
-        super().generate_numbers( trials, step, file)
         if file is None:
             self.val=draw_values_gum(mean=self.distribution.mean, stddev=self.distribution.stddev, draws=trials, distribution=self.distribution.distribution)
             # store the first value as reference
             self.val[0] = self.distribution.mean
         else:
-            #Load data from file
-            print('Not yet implemented')
+            # load data from file
+            tmpVar = McVar()
+            tmpVar.unpickle(file)
+            # do not change the value name and unit here
+            self.val = tmpVar.val.copy()
+            self.trials = tmpVar.trials
+            self.step = tmpVar.step
+            self.distribution = tmpVar.distribution
+        self.file = file
+    def pickle(self, filename = None):
+        if filename is None:
+            (filename, line_number, function_name, text) = traceback.extract_stack()[-2]
+            def_name = text[:text.find('.')].strip()
+            filename = def_name + '.pkl'
+        f = open(filename, 'wb')
+        pickle.dump(self.__dict__, f, pickle.HIGHEST_PROTOCOL)
 
-class McOutputVar(McVar):
-    def __init__(self, name:NameUnit = None):
-        super().__init__(name = name)
+    def unpickle(self, filename=None):
+        if filename is None:
+            (filename, line_number, function_name, text) = traceback.extract_stack()[-2]
+            filename = text[:text.find('.')].strip()
+        if not 'pkl' in filename:
+            filename = filename + '.pkl'
+        with open(filename, 'rb') as f:
+            dataPickle = f.read()
+            f.close()
+        self.__dict__ = pickle.loads(dataPickle)
 
-    def allocate(self, trials:int = default_trials, step:int = 0):
-        self.val = np.zeros(trials)
+    def print_stat(self, out_all = False):
+        [values, interval] = sumMC(self.val)
+        (filename, line_number, function_name, text) = traceback.extract_stack()[-2]
+        def_name = text[:text.find('.')].strip()
+        print ('Name:', def_name, self.name, 'Values:', values, 'Interval:', interval)
+        if out_all:
+            print('    trials:', self.trials, 'step:', self.step, 'Distribution:', self.distribution)
 
+# Some tests for McVar
+def McVar_test():
+    var1 = McVar(name=NameUnit('var1', 'Unit_var1'), distribution=DistributionParam())
+    var1.generate_numbers()
+    var1.print_stat()
+    var1.pickle()
+
+    var1Load = McVar(name=NameUnit('var1Load', 'Unit_var1Load'))
+    var1Load.unpickle('var1')
+    var1Load.print_stat(out_all=True)
+
+    var2 = McVar(name=NameUnit('var2', 'Unit_var2'),
+                 distribution=DistributionParam(mean=1, stddev=2, distribution='triangle', add_params=4))
+    var2.generate_numbers()
+    var2.print_stat(out_all=True)
+    var2.pickle()
+
+    var2Load = McVar()
+    var2Load.unpickle('var2')
+    var2Load.print_stat(out_all=True)
+
+    var2Load.generate_numbers(file='var1')
+    var2Load.print_stat(out_all=True)
+
+noise_list_default = {'nc_add': DistributionParam(),
+                      'c_add': DistributionParam(),
+                      'f_add': DistributionParam(),
+                      'nc_mul': DistributionParam(),
+                      'c_mul': DistributionParam(),
+                      'f_mul': DistributionParam(),
+                    }
 class MCVectorVar(McVar):
-    def __init__(self,name: NameUnit = None, elements:int = 2):
+    def __init__(self,name: NameUnit = None, elements:int = 2, noise_list:dict = None):
         super().__init__(name = name)
         self.elements:int = elements
+        self.v_mean = None
+        self.v_std = None
         self.cov_matrix = None
         self.corr_matrix = None
-        self.v_std = None
-        self.v_mean = None
-
+        if noise_list is None:
+            self.noise_list = dict()
+        else:
+            self.noise_list = noise_list
     def set_vector_param(self, v_mean, v_std = None, corr = None, cov = None):
         if v_mean.shape[0] != self.elements:
             raise TypeError("v_mean should have the rigth shape", self.elements)
@@ -117,21 +173,81 @@ class MCVectorVar(McVar):
         self.val = np.zeros((trials, self.elements))
 
     def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
-        super().generate_numbers(trials, step, file)
+        self.trials = trials
+        self.step = step
+
         if file is None:
-            self.val = np.random.default_rng().multivariate_normal(self.v_mean, self.cov_matrix, self.trials)
+            if not self.noise_list:
+                self.val = np.random.default_rng().multivariate_normal(self.v_mean, self.cov_matrix, self.trials)
+            else:
+                self.val = np.zeros((self.trials, self.elements))
+                for i in range(1, self.trials):
+                    self.val[i] = self.v_mean.copy()
+                    for noise, params in self.noise_list.items():
+                        match noise:
+                            case 'nc_add':
+                                self.val[i] = self.add_noise_nc_add(self.val[i], params).copy()
+                            case 'c_add':
+                                self.val[i] = self.add_noise_c_add(self.val[i], params).copy()
+                            case 'f_add':
+                                self.val[i] = self.add_fourier_noise_add(self.val[i], params).copy()
+                            case 'nc_mul':
+                                self.val[i] = self.add_noise_nc_mul(self.val[i], params).copy()
+                            case 'c_mul':
+                                self.val[i] = self.add_noise_c_mul(self.val[i], params).copy()
+                            case 'f_mul':
+                                self.val[i] = self.add_fourier_noise_mul(self.val[i], params).copy()
+                            case _: print( noise, ' Not implemented')
             # store the first value as reference
             self.val[0] = self.v_mean
+            self.trials = trials
+            self.step = step
+            self.calc_cov_matrix_from_data()
         else:
-            #Load data from file
-            print('Not yet implemented')
+            # load data from file
+            tmpVar = MCVectorVar()
+            tmpVar.unpickle(file)
+            # do not change the value name and unit here
+            self.val = tmpVar.val.copy()
+            self.trials = tmpVar.trials
+            self.step = tmpVar.step
+            self.distribution = tmpVar.distribution
+            self.elements = tmpVar.elements
+            self.v_mean = tmpVar.v_mean
+            self.v_std = tmpVar.v_std
+            self.cov_matrix = tmpVar.cov_matrix
+            self.corr_matrix = tmpVar.corr_matrix
+            self.noise_list = tmpVar.noiseList
+    def add_noise_nc_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
+        return tmpData + noise
+
+    def add_noise_c_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0]
+        return noise + tmpData
+
+    def add_fourier_noise_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = generate_FourierMC0( params.add_params, self.elements, params.stddev)
+        return noise + tmpData
+
+    def add_noise_nc_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
+        return tmpData * (1. + noise)
+
+    def add_noise_c_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0]
+        return (1. + noise) * tmpData
+    def add_fourier_noise_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = (1+generate_FourierMC0( params.add_params, self.elements, params.stddev))
+        return noise * tmpData
 
     def print_stat(self):
          # with help from https://schurpf.com/python-save-a-class/
          (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
-         def_name = text[:text.find('=')].strip()
+         def_name = text[:text.find('.')].strip()
          [values, interval] = sumMCV(self.val)
          print ('Name:', def_name, self.name, 'Values:', values, 'Interval:', interval)
+         print ('Corr:', self.corr_matrix, 'Cov:', self.cov_matrix)
 
     # calc a correlation matrix from covariance matrix
     # We need the covariance matrix first!
@@ -148,6 +264,13 @@ class MCVectorVar(McVar):
     def calc_cov_matrix(self):
         D = np.diag(self.v_std)
         self.cov_matrix = np.matmul(np.matmul(D, self.corr_matrix),D)
+        self.calc_corr_matrix()
+        return self.cov_matrix
+
+    # calc a covariance matrix from current data and update corr_matrix too
+    def calc_cov_matrix_from_data(self):
+        self.cov_matrix = np.cov(self.val.T)
+        self.calc_corr_matrix()
         return self.cov_matrix
 
     # improve the covariance matrix for further calculations or transfers
@@ -180,42 +303,34 @@ class MCVectorVar(McVar):
             self.calc_cov_matrix()
             print("MaxDiff eigenvalues:", np.max(np.abs(X-X_n)))
 
-def py_getBaseFunctions( number, wl, phaseVector):
-    lambda1 = wl[0]
-    deltaLambda = wl[wl.size-1]-lambda1
-    baseFunctions = np.zeros((number+1, wl.size))
-    for i in range(number+1):
-        if i==0:
-            singleBase = np.ones(wl.size)
-        else:
-            singleBase = math.sqrt(2)*np.sin(i*(2*math.pi*((wl-lambda1)/(deltaLambda))+phaseVector[i]))
-        baseFunctions[i,:] = singleBase.transpose()
-    return baseFunctions.transpose()
+def McVector_test():
+    var1V = MCVectorVar(name=NameUnit('var1', 'Unit_var1'))
 
-def py_getGammai( number):
-    Yi = stats.norm.rvs(size=number+1)
-    QSum=np.sum( Yi**2)
-    return Yi/math.sqrt(QSum)
+    v_mean = np.zeros((2))
+    v_std = np.ones((2)) * 2
+    v_std[0] = 0.5
 
-def generate_FourierMC0( number, wl, uValue):
-    rGammai = np.random.normal(size=(number+1))
-    QSumSqrt = np.sqrt(np.sum(rGammai**2))
-    rGammaiN = rGammai / QSumSqrt
-    # Correction for the correlated contribution : Here we do not need the normalization
-    rGammaiN[0] = rGammai[0]
-    rPhasei = np.random.uniform(low = 0, high = 2*math.pi, size = (number+1))
-    baseFunctions = py_getBaseFunctions( number, wl, rPhasei)
-    rMatrix = np.dot(baseFunctions, rGammaiN)
-    rMatrixSPD = rMatrix*uValue
-    return rMatrixSPD
+    var1V.set_vector_param(v_mean, v_std)
+    var1V.generate_numbers()
+    var1V.print_stat()
+    var1V.pickle()
 
-noise_list_default = {'wl_nc': DistributionParam(),
-                      'wl_c': DistributionParam(),
-                      'wl_f': DistributionParam(),
-                      'v_nc': DistributionParam(),
-                      'v_c': DistributionParam(),
-                      'v_f': DistributionParam(),
-                      'all': None,}
+    var2V = MCVectorVar(name=NameUnit('var2', 'Unit_var2'))
+    var2V.generate_numbers(file='var1V')
+    var2V.print_stat()
+    plot_2D(var2V, number=1000)
+
+    var3V = var1V
+    v_mean[0] = 2
+    v_mean[1] = 3
+    corr = np.eye(2, dtype=float)
+    corr[0, 1] = -0.7
+    corr[1, 0] = -0.7
+    var3V.set_vector_param(v_mean=v_mean, v_std=v_std, corr=corr)
+    var3V.generate_numbers()
+    var3V.print_stat()
+    plot_2D(var3V, number=1000)
+
 
 class McSpectrumVar(McVar):
     """
@@ -239,10 +354,7 @@ class McSpectrumVar(McVar):
             self.spd = lx.SPD(spd=newSPD, negative_values_allowed=True)
         # to remember the number of elements
         self.wlElements = len(self.spd.wl)
-        if noise_list is None:
-            self.noise_list = dict()
-        else:
-            self.noise_list = noise_list
+
 
     # interpolate all data in self.values to the nominal wavelength scale
     # Attention: No update of statistical information here
@@ -367,3 +479,12 @@ class McSim(object):
                 #ToDo: funktioniert noch nicht für Vectoren am Ausgang, daher Einzelelemente nehmen
                 for j, var_out in enumerate(self.output_var[k]):
                     var_out[i] = res[j]
+
+def McSim_main():
+    McVar_test()
+    MCVector_test()
+
+if __name__ == '__main__':
+    print( 'MCSim Test Start')
+    McSim_main()
+    print( 'MCSim Test End')
