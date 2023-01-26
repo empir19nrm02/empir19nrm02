@@ -16,7 +16,7 @@ import copy
 from luxpy import SPD
 import traceback
 from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumMCV
-from empir19nrm02.tools import  plot_2D
+from empir19nrm02.tools import  plot_2D, plotHistScales
 from empir19nrm02.MC import  generate_FourierMC0
 import numpy as np
 from numpy import ndarray
@@ -24,9 +24,12 @@ import luxpy as lx
 import pickle
 
 
-__all__ = ['DistributionParam','NameUnit','McVar', 'MCVectorVar', 'McSpectrumVar','McSim', 'noise_list_default']
+__all__ = ['DistributionParam', 'NameUnit', 'MCVar', 'MCVectorVar', 'MCSpectrumVar', 'MCSimulation', 'noise_list_default', 'pickle_copy']
 
 default_trials:int = 10000
+
+pickle_copy = lambda obj: pickle.loads(pickle.dumps(obj))
+
 
 @dataclass
 class   DistributionParam(object):
@@ -42,10 +45,7 @@ class   NameUnit(object):
     name: str = 'Name'
     unit: str = 'Unit'
 
-
-# with help from https://schurpf.com/python-save-a-class/
-
-class McVar(object):
+class MCVar(object):
     def __init__(self, name:NameUnit = None, distribution: DistributionParam = None):
         self.name:NameUnit = name
         self.trials:int = 0
@@ -70,13 +70,15 @@ class McVar(object):
             self.val[0] = self.distribution.mean
         else:
             # load data from file
-            tmpVar = McVar()
-            tmpVar.unpickle(file)
-            # do not change the value name and unit here
-            self.val = tmpVar.val.copy()
-            self.trials = tmpVar.trials
-            self.step = tmpVar.step
-            self.distribution = tmpVar.distribution
+            if '.pkl' in file:
+                tmpVar = MCVar()
+                tmpVar.unpickle(file)
+                # do not change the value name and unit here
+                self.val = tmpVar.val.copy()
+                self.trials = tmpVar.trials
+                self.step = tmpVar.step
+                self.distribution = tmpVar.distribution
+
         self.file = file
     def pickle(self, filename = None):
         if filename is None:
@@ -101,28 +103,28 @@ class McVar(object):
         [values, interval] = sumMC(self.val)
         (filename, line_number, function_name, text) = traceback.extract_stack()[-2]
         def_name = text[:text.find('.')].strip()
-        print ('Name:', def_name, self.name, 'Values:', values, 'Interval:', interval)
+        print('Name:', def_name, self.name, 'Values:', values, (values[1] / values[0]), 'Interval:', interval)
         if out_all:
             print('    trials:', self.trials, 'step:', self.step, 'Distribution:', self.distribution)
 
 # Some tests for McVar
 def McVar_test():
-    var1 = McVar(name=NameUnit('var1', 'Unit_var1'), distribution=DistributionParam())
+    var1 = MCVar(name=NameUnit('var1', 'Unit_var1'), distribution=DistributionParam())
     var1.generate_numbers()
     var1.print_stat()
     var1.pickle()
 
-    var1Load = McVar(name=NameUnit('var1Load', 'Unit_var1Load'))
+    var1Load = MCVar(name=NameUnit('var1Load', 'Unit_var1Load'))
     var1Load.unpickle('var1')
     var1Load.print_stat(out_all=True)
 
-    var2 = McVar(name=NameUnit('var2', 'Unit_var2'),
+    var2 = MCVar(name=NameUnit('var2', 'Unit_var2'),
                  distribution=DistributionParam(mean=1, stddev=2, distribution='triangle', add_params=4))
     var2.generate_numbers()
     var2.print_stat(out_all=True)
     var2.pickle()
 
-    var2Load = McVar()
+    var2Load = MCVar()
     var2Load.unpickle('var2')
     var2Load.print_stat(out_all=True)
 
@@ -136,7 +138,7 @@ noise_list_default = {'nc_add': DistributionParam(),
                       'c_mul': DistributionParam(),
                       'f_mul': DistributionParam(),
                     }
-class MCVectorVar(McVar):
+class MCVectorVar(MCVar):
     def __init__(self,name: NameUnit = None, elements:int = 2, noise_list:dict = None):
         super().__init__(name = name)
         self.elements:int = elements
@@ -152,24 +154,25 @@ class MCVectorVar(McVar):
         if v_mean.shape[0] != self.elements:
             raise TypeError("v_mean should have the rigth shape", self.elements)
         self.v_mean = v_mean.copy()
-        if v_std is None:
-            if cov is None:
-                raise TypeError("v_std and cov are None")
-            else:
-                if cov.shape[0] != self.elements | cov.shape[1] != self.elements:
-                    raise ValueError("Shape of Mean and Cov do not fit", self.elements, cov.shape)
-                self.cov_matrix = cov.copy()
-                self.calc_corr_matrix()
+        if not cov is None:
+            if cov.shape[0] != self.elements | cov.shape[1] != self.elements:
+                raise ValueError("Shape of Mean and Cov do not fit", self.elements, cov.shape)
+            self.cov_matrix = cov.copy()
+            self.calc_corr_matrix()
         else:
-            if corr is None:
-                self.corr_matrix = np.eye(self.elements, dtype=float)
+            if not v_std is None:
+                if corr is None:
+                    self.corr_matrix = np.eye(self.elements, dtype=float)
+                else:
+                    self.corr_matrix = corr.copy()
+                self.v_std = v_std.copy()
+                self.calc_cov_matrix()
             else:
-                self.corr_matrix = corr.copy()
-            self.v_std = v_std.copy()
-            self.calc_cov_matrix()
+                self.v_std = np.zeros_like(self.v_mean)
+                self.cov_matrix = np.zeros((self.elements, self.elements))
+                self.corr_matrix = np.zeros((self.elements, self.elements))
 
     def allocate(self, trials:int = default_trials, step:int = 0):
-        super().generate_numbers(trials, step)
         self.val = np.zeros((trials, self.elements))
 
     def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
@@ -178,7 +181,13 @@ class MCVectorVar(McVar):
 
         if file is None:
             if not self.noise_list:
-                self.val = np.random.default_rng().multivariate_normal(self.v_mean, self.cov_matrix, self.trials)
+                try:
+                    self.val = np.random.default_rng().multivariate_normal(self.v_mean, self.cov_matrix, self.trials)
+                except np.linalg.LinAlgError:
+                    print('SVD LinAlgError:  improvement of cov. Matrix required.')
+                    self.improve_covariance(mode='eigenvalues', ratio=0.001)
+                    # try again
+                    self.val = np.random.default_rng().multivariate_normal(self.v_mean, self.cov_matrix, self.trials)
             else:
                 self.val = np.zeros((self.trials, self.elements))
                 for i in range(1, self.trials):
@@ -199,25 +208,31 @@ class MCVectorVar(McVar):
                                 self.val[i] = self.add_fourier_noise_mul(self.val[i], params).copy()
                             case _: print( noise, ' Not implemented')
             # store the first value as reference
-            self.val[0] = self.v_mean
             self.trials = trials
             self.step = step
             self.calc_cov_matrix_from_data()
+            # using the mean value from the generated data
+            # v_std is using the std. deviation from the generated data too
+            self.val[0] = self.v_mean
         else:
             # load data from file
-            tmpVar = MCVectorVar()
-            tmpVar.unpickle(file)
-            # do not change the value name and unit here
-            self.val = tmpVar.val.copy()
-            self.trials = tmpVar.trials
-            self.step = tmpVar.step
-            self.distribution = tmpVar.distribution
-            self.elements = tmpVar.elements
-            self.v_mean = tmpVar.v_mean
-            self.v_std = tmpVar.v_std
-            self.cov_matrix = tmpVar.cov_matrix
-            self.corr_matrix = tmpVar.corr_matrix
-            self.noise_list = tmpVar.noiseList
+            if '.pkl' in file:
+                tmpVar = MCVectorVar()
+                tmpVar.unpickle(file)
+                # do not change the value name and unit here
+                self.val = tmpVar.val.copy()
+                self.trials = tmpVar.trials
+                self.step = tmpVar.step
+                self.distribution = tmpVar.distribution
+                self.elements = tmpVar.elements
+                self.v_mean = tmpVar.v_mean
+                self.v_std = tmpVar.v_std
+                self.cov_matrix = tmpVar.cov_matrix
+                self.corr_matrix = tmpVar.corr_matrix
+                self.noise_list = tmpVar.noise_list
+            if '.xls' in file:
+                tmpVar = MCVectorVar()
+
     def add_noise_nc_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
         return tmpData + noise
@@ -246,17 +261,23 @@ class MCVectorVar(McVar):
          (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
          def_name = text[:text.find('.')].strip()
          [values, interval] = sumMCV(self.val)
-         print ('Name:', def_name, self.name, 'Values:', values, 'Interval:', interval)
+         print ('Name:', def_name, self.name, 'Values:', values, (values[1]/values[0]), 'Interval:', interval)
          print ('Corr:', self.corr_matrix, 'Cov:', self.cov_matrix)
 
     # calc a correlation matrix from covariance matrix
     # We need the covariance matrix first!
     # THX: https://gist.github.com/wiso/ce2a9919ded228838703c1c7c7dad13b
+
+    @staticmethod
+    def calc_corr_matrix_static(cov_matrix:ndarray):
+        v_std = np.sqrt(np.diag(cov_matrix))
+        outer_v = np.outer(v_std, v_std)
+        corr_matrix = np.divide(cov_matrix, outer_v, out=np.zeros_like(cov_matrix), where=outer_v!=0)
+        corr_matrix[cov_matrix == 0] = 0
+        return v_std, corr_matrix
+
     def calc_corr_matrix(self):
-        self.v_std = np.sqrt(np.diag(self.cov_matrix))
-        outer_v = np.outer(self.v_std, self.v_std)
-        self.corr_matrix = self.cov_matrix / outer_v
-        self.corr_matrix[self.cov_matrix == 0] = 0
+        self.v_std, self.corr_matrix = MCVectorVar.calc_corr_matrix_static(self.cov_matrix)
         return self.corr_matrix
 
     # calc a covariance matrix from correlation matrix and standard deviation vector
@@ -269,11 +290,13 @@ class MCVectorVar(McVar):
 
     # calc a covariance matrix from current data and update corr_matrix too
     def calc_cov_matrix_from_data(self):
+        self.v_mean = np.mean(self.val, axis=0)
         self.cov_matrix = np.cov(self.val.T)
         self.calc_corr_matrix()
         return self.cov_matrix
 
     # improve the covariance matrix for further calculations or transfers
+    # ToDo: Test, did not work at the moment
     def improve_covariance(self, mode='nearcorr', ratio=0.01):
         # oDo
         # Some information about:
@@ -303,7 +326,7 @@ class MCVectorVar(McVar):
             self.calc_cov_matrix()
             print("MaxDiff eigenvalues:", np.max(np.abs(X-X_n)))
 
-def McVector_test():
+def MCVector_test():
     var1V = MCVectorVar(name=NameUnit('var1', 'Unit_var1'))
 
     v_mean = np.zeros((2))
@@ -332,7 +355,7 @@ def McVector_test():
     plot_2D(var3V, number=1000)
 
 
-class McSpectrumVar(McVar):
+class MCSpectrumVar(MCVar):
     """
     Spectrum class for MC simulations
     An object holds a spectrum (class luxpy.SPD) with only one wavelength scale and one value array
@@ -439,7 +462,7 @@ class McSpectrumVar(McVar):
         #print('add_value_fourier_noise2:', np.min(spd_tmp.wl), np.max(spd_tmp.wl),np.min(spd_tmp.value), np.max(spd_tmp.value) )
 
 #%%
-class McSim(object):
+class MCSimulation(object):
     def __init__(self, trials = default_trials):
         self.trials = trials
         self.input_var = None

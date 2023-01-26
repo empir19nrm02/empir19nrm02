@@ -87,15 +87,20 @@ def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCo
     if fileName is not None:
         pyplot.savefig(fileName)
 
+
+def gauss( x, mean, stddev):
+    y = np.zeros_like(x)
+    y = 1 / (stddev * np.sqrt(2 * np.pi)) * np.exp(- (x - mean) ** 2 / (2 * stddev ** 2))
+    return y
 def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
                    title='Title', xLabel='xLabel', yLabel=None,
-                   filename=None, fontsize=None):
+                   filename=None, fontsize=None, add_distribution = False):
     if ax == None:
         fig, ax1 = plt.subplots()
     else:
         ax1 = ax
 
-    ax1.hist(data[1:].flatten(), bins=bins, density=density)
+    n_hist, bins_hist, patches_hist =  ax1.hist(data[1:].flatten(), bins=bins, density=density)
     ax1.set_xlabel(xLabel, fontsize=fontsize)
 
     ax1.set_title(title)
@@ -104,9 +109,13 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
     else:
         ax1.set_ylabel(yLabel)
 
+
     # stat over all
     [value, interval] = sumMC(data, Coverage=0.95)
     print('Value=', value, 'Inteval(95%)=', interval[1] - interval[0])
+
+    if add_distribution:
+        ax1.plot(bins_hist, gauss(bins_hist, value[0], value[1]), linewidth=2, color='r')
 
     ax1.axvline(interval[0])
     ax1.axvline(interval[1])

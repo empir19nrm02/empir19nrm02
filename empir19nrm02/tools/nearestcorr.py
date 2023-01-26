@@ -5,6 +5,7 @@ from numpy.linalg import norm
 
 __all__ = ['nearcorr', 'make_symm']
 
+# ToDo: Test necessary
 
 class ExceededMaxIterationsError(Exception):
     def __init__(self, msg, matrix=[], iteration=[], ds=[]):
@@ -81,7 +82,9 @@ def nearcorr(A, tol=[], flag=0, max_iterations=100, n_pos_eig=0,
 
     eps = np.spacing(1)
     if not np.all((np.transpose(A) == A)):
-        raise ValueError('Input Matrix is not symmetric')
+        # make the matrix symetric (THX: https://stackoverflow.com/questions/28904411/making-a-numpy-ndarray-matrix-symmetric)
+        A = np.tril(A) + np.triu(A.T, 1)
+        #raise ValueError('Input Matrix is not symmetric')
     if not tol:
         tol = eps * np.shape(A)[0] * np.array([1, 1])
     if weights is None:
