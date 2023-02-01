@@ -24,7 +24,7 @@ import luxpy as lx
 import pickle
 
 
-__all__ = ['DistributionParam', 'NameUnit', 'MCVar', 'MCVectorVar', 'MCSpectrumVar', 'MCSimulation', 'noise_list_default', 'pickle_copy']
+__all__ = ['DistributionParam', 'NameUnit', 'MCVar', 'MCVectorVar', 'MCSpectrumVar', 'MCSimulation', 'noise_list_default', 'pickle_copy', 'StatDataVector']
 
 default_trials:int = 10000
 
@@ -44,30 +44,42 @@ class   DistributionParam(object):
 class   NameUnit(object):
     name: str = 'Name'
     unit: str = 'Unit'
+@dataclass
+class   SetParams(object):
+    trials: int = default_trials
+    step:int = 0
+    distribution: DistributionParam = DistributionParam()
+    file:str = None
 
 class MCVar(object):
-    def __init__(self, name:NameUnit = None, distribution: DistributionParam = None):
-        self.name:NameUnit = name
-        self.trials:int = 0
-        self.step:int = 0
+    def __init__(self, name:NameUnit = None, distribution: DistributionParam = None, file: str = None):
+        # description of the properties
+        self.name = name
+        self.setParam = SetParams()
+        self.setParam.distribution = distribution
+        self.setParam.file = file
+        # samples
         self.val = None
-        self.distribution = distribution
-        self.file = None
 
     def __getitem__(self, item):
         return self.val[item]
     def __setitem__(self, key, value):
         self.val[key] = value
     def allocate(self, trials:int = default_trials, step:int = 0):
+        self.setParam.trials = trials
+        self.setParam.step = step
         self.val = np.zeros(trials)
     def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
-        self.trials = trials
-        self.step = step
+        self.setParam.trials = trials
+        self.setParam.step = step
 
         if file is None:
-            self.val=draw_values_gum(mean=self.distribution.mean, stddev=self.distribution.stddev, draws=trials, distribution=self.distribution.distribution)
+            self.val=draw_values_gum(mean=self.setParam.distribution.mean,
+                                     stddev=self.setParam.distribution.stddev,
+                                     draws=self.setParam.trials,
+                                     distribution=self.setParam.distribution.distribution)
             # store the first value as reference
-            self.val[0] = self.distribution.mean
+            self.val[0] = self.setParam.distribution.mean
         else:
             # load data from file
             if '.pkl' in file:
@@ -75,16 +87,18 @@ class MCVar(object):
                 tmpVar.unpickle(file)
                 # do not change the value name and unit here
                 self.val = tmpVar.val.copy()
-                self.trials = tmpVar.trials
-                self.step = tmpVar.step
-                self.distribution = tmpVar.distribution
+                self.setParam.trials = tmpVar.setParam.trials
+                self.setParam.step = tmpVar.setParam.step
+                self.setParam.distribution = tmpVar.setParam.distribution
+                self.setParam.file = tmpVar.setParam.file
 
-        self.file = file
+        self.setParam.file = file
     def pickle(self, filename = None):
         if filename is None:
             (filename, line_number, function_name, text) = traceback.extract_stack()[-2]
-            def_name = text[:text.find('.')].strip()
-            filename = def_name + '.pkl'
+            filename = text[:text.find('.')].strip()
+        if not '.pkl' in filename:
+            filename = filename + '.pkl'
         f = open(filename, 'wb')
         pickle.dump(self.__dict__, f, pickle.HIGHEST_PROTOCOL)
 
@@ -105,7 +119,7 @@ class MCVar(object):
         def_name = text[:text.find('.')].strip()
         print('Name:', def_name, self.name, 'Values:', values, (values[1] / values[0]), 'Interval:', interval)
         if out_all:
-            print('    trials:', self.trials, 'step:', self.step, 'Distribution:', self.distribution)
+            print('    trials:', self.setParam.trials, 'step:', self.setParam.step, 'Distribution:', self.setParam.distribution)
 
 # Some tests for McVar
 def McVar_test():
@@ -138,14 +152,19 @@ noise_list_default = {'nc_add': DistributionParam(),
                       'c_mul': DistributionParam(),
                       'f_mul': DistributionParam(),
                     }
+@dataclass
+class   StatDataVector(object):
+    v_mean:ndarray = None
+    v_std:ndarray = None
+    corr_matrix:ndarray = None
+    cov_matrix:ndarray = None
+
 class MCVectorVar(MCVar):
     def __init__(self,name: NameUnit = None, elements:int = 2, noise_list:dict = None):
         super().__init__(name = name)
-        self.elements:int = elements
-        self.v_mean = None
-        self.v_std = None
-        self.cov_matrix = None
-        self.corr_matrix = None
+        self.elements = elements
+        self.setData = StatDataVector()
+        self.runData = StatDataVector()
         if noise_list is None:
             self.noise_list = dict()
         else:
@@ -153,45 +172,46 @@ class MCVectorVar(MCVar):
     def set_vector_param(self, v_mean, v_std = None, corr = None, cov = None):
         if v_mean.shape[0] != self.elements:
             raise TypeError("v_mean should have the rigth shape", self.elements)
-        self.v_mean = v_mean.copy()
+        self.setData.v_mean = v_mean.copy()
         if not cov is None:
             if cov.shape[0] != self.elements | cov.shape[1] != self.elements:
                 raise ValueError("Shape of Mean and Cov do not fit", self.elements, cov.shape)
-            self.cov_matrix = cov.copy()
-            self.calc_corr_matrix()
+            self.setData.cov_matrix = cov.copy()
+            self.calc_corr_matrix_set()
         else:
             if not v_std is None:
                 if corr is None:
-                    self.corr_matrix = np.eye(self.elements, dtype=float)
+                    self.setData.corr_matrix = np.eye(self.elements, dtype=float)
                 else:
-                    self.corr_matrix = corr.copy()
-                self.v_std = v_std.copy()
-                self.calc_cov_matrix()
+                    self.setData.corr_matrix = corr.copy()
+                self.setData.v_std = v_std.copy()
+                self.calc_cov_matrix_set()
             else:
-                self.v_std = np.zeros_like(self.v_mean)
-                self.cov_matrix = np.zeros((self.elements, self.elements))
-                self.corr_matrix = np.zeros((self.elements, self.elements))
+                self.setData.v_std = np.zeros_like(self.setData.v_mean)
+                self.setData.cov_matrix = np.zeros((self.elements, self.elements))
+                self.setData.corr_matrix = np.zeros((self.elements, self.elements))
 
     def allocate(self, trials:int = default_trials, step:int = 0):
+        self.setParam.trials = trials
         self.val = np.zeros((trials, self.elements))
 
     def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
-        self.trials = trials
-        self.step = step
+        self.setParam.trials = trials
+        self.setParam.step = step
 
         if file is None:
             if not self.noise_list:
                 try:
-                    self.val = np.random.default_rng().multivariate_normal(self.v_mean, self.cov_matrix, self.trials)
+                    self.val = np.random.default_rng().multivariate_normal(self.setData.v_mean, self.setData.cov_matrix, self.setParam.trials)
                 except np.linalg.LinAlgError:
                     print('SVD LinAlgError:  improvement of cov. Matrix required.')
                     self.improve_covariance(mode='eigenvalues', ratio=0.001)
                     # try again
-                    self.val = np.random.default_rng().multivariate_normal(self.v_mean, self.cov_matrix, self.trials)
+                    self.val = np.random.default_rng().multivariate_normal(self.setData.v_mean, self.setData.cov_matrix, self.setParam.trials)
             else:
-                self.val = np.zeros((self.trials, self.elements))
-                for i in range(1, self.trials):
-                    self.val[i] = self.v_mean.copy()
+                self.val = np.zeros((self.setParam.trials, self.elements))
+                for i in range(1, self.setParam.trials):
+                    self.val[i] = self.setData.v_mean.copy()
                     for noise, params in self.noise_list.items():
                         match noise:
                             case 'nc_add':
@@ -208,29 +228,24 @@ class MCVectorVar(MCVar):
                                 self.val[i] = self.add_fourier_noise_mul(self.val[i], params).copy()
                             case _: print( noise, ' Not implemented')
             # store the first value as reference
-            self.trials = trials
-            self.step = step
             self.calc_cov_matrix_from_data()
             # using the mean value from the generated data
             # v_std is using the std. deviation from the generated data too
-            self.val[0] = self.v_mean
+            self.val[0] = self.runData.v_mean
         else:
             # load data from file
             if '.pkl' in file:
                 tmpVar = MCVectorVar()
                 tmpVar.unpickle(file)
                 # do not change the value name and unit here
-                self.val = tmpVar.val.copy()
-                self.trials = tmpVar.trials
-                self.step = tmpVar.step
-                self.distribution = tmpVar.distribution
+                self.setParam = tmpVar.setParam
                 self.elements = tmpVar.elements
-                self.v_mean = tmpVar.v_mean
-                self.v_std = tmpVar.v_std
-                self.cov_matrix = tmpVar.cov_matrix
-                self.corr_matrix = tmpVar.corr_matrix
+                self.setData = tmpVar.setData
+                self.runData = tmpVar.runData
                 self.noise_list = tmpVar.noise_list
+                self.val = tmpVar.val
             if '.xls' in file:
+                # ToDo: Read from XLS
                 tmpVar = MCVectorVar()
 
     def add_noise_nc_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
@@ -262,7 +277,8 @@ class MCVectorVar(MCVar):
          def_name = text[:text.find('.')].strip()
          [values, interval] = sumMCV(self.val)
          print ('Name:', def_name, self.name, 'Values:', values, (values[1]/values[0]), 'Interval:', interval)
-         print ('Corr:', self.corr_matrix, 'Cov:', self.cov_matrix)
+         print ('Set: Corr:', self.setData.corr_matrix, 'Cov:', self.setData.cov_matrix)
+         print ('Data: Corr:', self.runData.corr_matrix, 'Cov:', self.runData.cov_matrix)
 
     # calc a correlation matrix from covariance matrix
     # We need the covariance matrix first!
@@ -276,24 +292,46 @@ class MCVectorVar(MCVar):
         corr_matrix[cov_matrix == 0] = 0
         return v_std, corr_matrix
 
-    def calc_corr_matrix(self):
-        self.v_std, self.corr_matrix = MCVectorVar.calc_corr_matrix_static(self.cov_matrix)
-        return self.corr_matrix
+    def calc_corr_matrix_set(self):
+        self.setData.v_std, self.setData.corr_matrix = MCVectorVar.calc_corr_matrix_static(self.setData.cov_matrix)
+        return self.setData.corr_matrix
+    def calc_corr_matrix_data(self):
+        self.runData.v_std, self.runData.corr_matrix = MCVectorVar.calc_corr_matrix_static(self.runData.cov_matrix)
+        return self.runData.corr_matrix
 
     # calc a covariance matrix from correlation matrix and standard deviation vector
     # We need the correlation matrix and standard deviation vector first!
-    def calc_cov_matrix(self):
-        D = np.diag(self.v_std)
-        self.cov_matrix = np.matmul(np.matmul(D, self.corr_matrix),D)
-        self.calc_corr_matrix()
-        return self.cov_matrix
+    def calc_cov_matrix_set(self):
+        D = np.diag(self.setData.v_std)
+        self.setData.cov_matrix = np.matmul(np.matmul(D, self.setData.corr_matrix), D)
+        self.calc_corr_matrix_set()
+        return self.setData.cov_matrix
+    def calc_cov_matrix_data(self):
+        D = np.diag(self.runData.v_std)
+        self.runData.cov_matrix = np.matmul(np.matmul(D, self.runData.corr_matrix), D)
+        self.calc_corr_matrix_data()
+        return self.runData.cov_matrix
 
     # calc a covariance matrix from current data and update corr_matrix too
     def calc_cov_matrix_from_data(self):
-        self.v_mean = np.mean(self.val, axis=0)
-        self.cov_matrix = np.cov(self.val.T)
-        self.calc_corr_matrix()
-        return self.cov_matrix
+        self.runData.v_mean = np.mean(self.val, axis=0)
+        self.runData.cov_matrix = np.cov(self.val.T)
+        self.calc_corr_matrix_data()
+        return self.runData.cov_matrix
+
+    def interpolate(self, wl_new, wl_current, kind='S'):
+        if wl_current.shape[0] != self.elements:
+            raise ValueError( f'Elements {self.elements} and shape of wl_current {wl_current.shape[0]} do not match')
+        if self.val is None or self.val.shape[0] != self.setParam.trials:
+            self.generate_numbers()
+        valPlus = np.vstack((wl_current, self.val))
+        self.val = lx.cie_interp(valPlus, wl_new, kind=kind)[1:]
+        self.elements = wl_new.shape[0]
+        self.calc_cov_matrix_from_data()
+        self.setData.v_mean = self.runData.v_mean
+        self.setData.v_std = self.runData.v_std
+        self.setData.cov_matrix = self.runData.cov_matrix
+        self.setData.corr_matrix = self.runData.corr_matrix
 
     # improve the covariance matrix for further calculations or transfers
     # ToDo: Test, did not work at the moment
@@ -306,15 +344,15 @@ class MCVectorVar(MCVar):
 
         if mode == 'nearcorr':
             # or for the coorlation matrix only:
-            X=make_symm(self.corr_matrix)
+            X=make_symm(self.setData.corr_matrix)
             X_n=nearcorr(X)
-            self.corr_matrix = X_n.copy()
-            self.calc_cov_matrix()
+            self.setData.corr_matrix = X_n.copy()
+            self.calc_cov_matrix_set()
             print("MaxDiff nearcorr:", np.max(np.abs(X-X_n)))
         if mode == 'eigenvalues':
             # THX: https://stackoverflow.com/questions/8092920/sort-eigenvalues-and-associated-eigenvectors-after-using-numpy-linalg-eig-in-pyt
             # GUM S2, 3.20/3.21
-            X=make_symm(self.corr_matrix)
+            X=make_symm(self.setData.corr_matrix)
             eigenValues, eigenVectors = np.linalg.eig(X)
             idx = eigenValues.argsort()[::-1]
             eigenValues = eigenValues[idx]
@@ -322,8 +360,8 @@ class MCVectorVar(MCVar):
             k = np.where(eigenValues < ratio*eigenValues[0])
             eigenValues[k[0][0]:] = eigenValues[k[0][0]]
             X_n=eigenVectors @ np.diag(eigenValues) @ np.linalg.inv(eigenVectors)
-            self.corr_matrix = X_n.copy()
-            self.calc_cov_matrix()
+            self.setData.corr_matrix = X_n.copy()
+            self.calc_cov_matrix_set()
             print("MaxDiff eigenvalues:", np.max(np.abs(X-X_n)))
 
 def MCVector_test():
@@ -480,7 +518,9 @@ class MCSimulation(object):
             self.output_var[i] = copy.deepcopy(output_var)
 
     def generate(self):
+        print( 'Generate:')
         for var in self.input_var:
+            print( var)
             var.generate_numbers(self.trials)
         for i in range(0,self.in_elements):
             for var in self.output_var[i]:

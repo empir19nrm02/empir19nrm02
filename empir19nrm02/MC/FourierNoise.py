@@ -66,7 +66,7 @@ def py_getGammai( number:int)->ndarray:
     QSum=np.sum( Yi**2)
     return Yi/math.sqrt(QSum)
 
-def generate_FourierMC0( number:int, base_function_size:int, uValue:float, org_function = False)->ndarray:
+def generate_FourierMC0( number:int, base_function_size:int, uValue:float, org_function = True)->ndarray:
     """
     Generate a set of fourier based functions according to https://doi.org/10.1088/1681-7575/aa7b39.
     equation (9)

@@ -4,6 +4,7 @@ import numpy as np
 from luxpy import _CMF, plot_spectrum_colors, plot_color_data
 import scipy
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import os
 
 quantil = 0.05
 dCutOff=0.003
@@ -14,6 +15,7 @@ strd = {
     'f1pLED': '$f_{1,\mathrm{L}}^{´}$',
     'f1pMin': '$f_{1,\mathrm{Min}}^{´}$',
     'f1pp': '$f_{1}^{´´}$',
+    'f1ppR': '$f_{1,\mathrm{R}}^{´´}$',
     'f1ppR': '$f_{1,\mathrm{R}}^{´´}$',
     'f1pBW': '$f_{1,\mathrm{BW}}^{´}$',
     'q_plus_a': '$F^{a}_{i,q+}$',
@@ -54,28 +56,31 @@ def get_fig_file_name(dir=None, filename=None, table=False):
     return file_name
 
 def save_fig(dir = None, filename=None, fig=None):
+    name = get_fig_file_name(dir=dir, filename=filename)
+#    if dir and not os.path.exists(dir):
+#        os.makedirs(dir)
     if fig is None:
-        pyplot.savefig( get_fig_file_name(dir=dir, filename=filename), bbox_inches='tight', pad_inches=0)
+        pyplot.savefig( name, bbox_inches='tight', pad_inches=0)
         pyplot.show()
     else:
-        fig.savefig( get_fig_file_name(dir=dir, filename=filename), bbox_inches='tight', pad_inches=0)
+        fig.savefig(name, bbox_inches='tight', pad_inches=0)
         fig.show()
 
-def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colors = ['r-', 'g-','b-'], single = False, spectrum_color = True):
+def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colors = ['r-', 'g-','b-'], single = False, spectrum_color = True, xlim=None):
     if ax is None:
         fig, ax = pyplot.subplots()
     if single:
         ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][2], cmf_colors[0],  label='$'+ cmf_symbols[0] + '(\lambda)$')
     else:
-        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][1], cmf_colors[0],  label='$\overline{'+cmf_symbols[0]+'}'+'(\lambda)$')
-        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][2], cmf_colors[1],  label='$\overline{'+cmf_symbols[1]+'}'+'(\lambda)$')
-        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][3], cmf_colors[2],  label='$\overline{'+cmf_symbols[2]+'}'+'(\lambda)$')
+        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][1], cmf_colors[0],  label=r'$\bar{'+cmf_symbols[0]+'}'+'(\lambda)$', lw=0.5)
+        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][2], cmf_colors[1],  label=r'$\bar{'+cmf_symbols[1]+'}'+'(\lambda)$', lw=0.5)
+        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][3], cmf_colors[2],  label=r'$\bar{'+cmf_symbols[2]+'}'+'(\lambda)$', lw=0.5)
 
     if spectrum_color:
         if single:
-            plot_spectrum_colors(spdmax=np.max(_CMF[name]['bar'][2]), axh=ax, wavelength_height=-0.05)
+            plot_spectrum_colors(spdmax=np.max(_CMF[name]['bar'][2]), axh=ax, wavelength_height=-0.05, xlim=xlim)
         else:
-            plot_spectrum_colors(spdmax=np.max(_CMF[name]['bar'][3]), axh = ax, wavelength_height = -0.05)
+            plot_spectrum_colors(spdmax=np.max(_CMF[name]['bar'][3]), axh = ax, wavelength_height = -0.05, xlim=xlim)
 
     ax.set_xlabel(strd['xlambda'], fontsize=label_font_size)
     ax.set_ylabel('Responsivity', fontsize=label_font_size)
@@ -143,23 +148,24 @@ def label_management( locfig0, locax2nd, strColor2nd='blue'):
     locax2nd.tick_params(axis='y', colors=strColor2nd)
     return [lines, labels]
 
-def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2, out_dir = None, plots=['plot1', 'plot2']):
+def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
+                          out_dir = None, plots=['plot1', 'plot2'], S_C='LED_L41', spectrum_color=False):
     if cieobs=='VS':
         cieobs='1951_20_scotopic'
 
     print( name)
     dl = lx.getwld(detectors[0])
     # LED_L41 is only available in a modified version of luxpy at the moment
-    SC_L41_org = lx._CIE_ILLUMINANTS['LED_L41'].copy()
+    SC_org = lx._CIE_ILLUMINANTS[S_C].copy()
     # LED_L41 in the right wavelength resolution (of the detector set)
-    SC_L41 = lx.cie_interp(SC_L41_org, detectors[0], negative_values_allowed=True, kind='linear')
+    SC = lx.cie_interp(SC_org, detectors[0], negative_values_allowed=True, kind='linear')
     # target function in the right resolution
     target = get_target(cieobs=cieobs, target_index=s_target_index, wl_new= detectors[0])
 
     # Integral (target*L41)
-    targetNorm = lx.utils.np2d(np.dot(target[1],dl*SC_L41[1]))
+    targetNorm = lx.utils.np2d(np.dot(target[1],dl*SC[1]))
     # Integral (detector * L41)
-    integralNorm = lx.utils.np2d(np.dot(detectors[1:],dl*SC_L41[1])).T
+    integralNorm = lx.utils.np2d(np.dot(detectors[1:],dl*SC[1])).T
     # normalized detector responsivities
     detectorNorm=targetNorm/integralNorm*detectors[1:]
     # add the wavelength scale to the field
@@ -167,13 +173,17 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2, ou
 
     if 'plot1' in plots:
         # plot all normalized detectors
+        fig, ax1 = pyplot.subplots()
         for i in range(1, detectorNorm.shape[0]):
-            pyplot.plot(detectorNorm[0], detectorNorm[i])
-        pyplot.plot(target[0], target[1], 'g-', label= r'target')
-        pyplot.ylabel(strd['srelLambda'],fontsize=label_font_size)
-        pyplot.xlabel(strd['xlambda'],fontsize=label_font_size)
-        pyplot.legend()
-        pyplot.tick_params(axis='both', direction='out')
+            ax1.plot(detectorNorm[0], detectorNorm[i])
+        ax1.plot(target[0], target[1], 'g-', label= r'target '+cieobs)
+        if spectrum_color:
+            plot_spectrum_colors(spdmax=np.max(detectorNorm[1:]), axh=ax1, wavelength_height=-0.05)
+
+        ax1.set_ylabel(strd['srelLambda'],fontsize=label_font_size)
+        ax1.set_xlabel(strd['xlambda'],fontsize=label_font_size)
+        ax1.legend()
+        ax1.tick_params(axis='both', direction='out')
         if out_dir is not None:
             save_fig( out_dir, name+'_all')
 
@@ -223,9 +233,8 @@ def aspectratio_to_one( ax):
     y_low, y_high = ax.get_ylim()
     ax.set_aspect(abs((x_right-x_left)/(y_low-y_high))*ratio)
 
-def display_color_diagram( spd, _spectra, cspace = 'Yxy'):
-    axh = lx.plotSL(cspace =cspace,show =False,BBL =True,DL =True, diagram_colors=True)
-    pyplot.figure(figsize=(10,10))
+def display_color_diagram( spd, _spectra, cspace = 'Yxy', diagram_colors=True):
+    axh = lx.plotSL(cspace =cspace,show =False,BBL =True,DL =True, diagram_colors=diagram_colors)
     if cspace == 'Yxy':
         DataCSpace=lx.xyz_to_Yxy(lx.spd_to_xyz(_spectra))
         axh.set_xlim(0, 0.9)
@@ -237,12 +246,13 @@ def display_color_diagram( spd, _spectra, cspace = 'Yxy'):
     else:
         print( 'ColorSpace: %s not supported' %(cspace))
     aspectratio_to_one( axh)
-    plot_color_data(DataCSpace[:,1], DataCSpace[:,2], cspace=cspace, formatstr ='kx',label =spd, axh=axh)
-    lx.plot_chromaticity_diagram_colors(axh=axh, cspace=cspace)
+    plot_color_data(DataCSpace[:,1], DataCSpace[:,2], cspace=cspace, formatstr ='kx',label =spd, axh=axh, show=False)
+    if diagram_colors:
+        lx.plot_chromaticity_diagram_colors(axh=axh, cspace=cspace)
 
 def display_spectra( spd, _spectra, curvenumber = 10):
     s_number = _spectra.shape[0]-1
-    for i in np.linspace( 2, s_number, curvenumber):
+    for i in np.linspace( 3, s_number, curvenumber):
         pyplot.plot(_spectra[0], _spectra[int(i)]/np.max(_spectra[int(i)]))
     pyplot.ylabel(strd['SDLambda'],fontsize=label_font_size)
     pyplot.xlabel(strd['xlambda'],fontsize=label_font_size)

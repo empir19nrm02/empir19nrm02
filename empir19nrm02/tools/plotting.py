@@ -122,8 +122,8 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
     ax1.axvline(value[0], color='tab:red')
     if filename is not None:
         fig.savefig(filename)
-    if ax is None:
-        fig.show()
+#    if ax is None:
+#        fig.show()
 
 def plotHistScalesWl(data, fig=None, ax=None, bins=50, density=True,
                      title='Histogram of wavelength scale',
@@ -285,6 +285,8 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     pearson = cov[0, 1]/np.sqrt(cov[0, 0] * cov[1, 1])
     # Using a special case to obtain the eigenvalues of this
     # two-dimensionl dataset.
+    pearson = pearson if pearson <= 1. else 1.0
+    pearson = pearson if pearson >= -1. else -1.0
     ell_radius_x = np.sqrt(1 + pearson)
     ell_radius_y = np.sqrt(1 - pearson)
     ellipse = Ellipse((0, 0), width=ell_radius_x * 2, height=ell_radius_y * 2,
