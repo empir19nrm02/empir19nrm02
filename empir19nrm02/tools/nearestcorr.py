@@ -99,6 +99,7 @@ def nearcorr(A, tol=[], flag=0, max_iterations=100, n_pos_eig=0,
 
     iteration = 0
     while max(rel_diffX, rel_diffY, rel_diffXY) > tol[0]:
+        #print( 'RelDiff:', rel_diffX, rel_diffY, rel_diffXY)
         iteration += 1
         if iteration > max_iterations:
             if except_on_too_many_iterations:

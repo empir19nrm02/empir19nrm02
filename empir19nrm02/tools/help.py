@@ -159,15 +159,19 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
     SC_org = lx._CIE_ILLUMINANTS[S_C].copy()
     # LED_L41 in the right wavelength resolution (of the detector set)
     SC = lx.cie_interp(SC_org, detectors[0], negative_values_allowed=True, kind='linear')
-    # target function in the right resolution
-    target = get_target(cieobs=cieobs, target_index=s_target_index, wl_new= detectors[0])
+    if s_target_index > 0:
+        # target function in the right resolution
+        target = get_target(cieobs=cieobs, target_index=s_target_index, wl_new= detectors[0])
 
-    # Integral (target*L41)
-    targetNorm = lx.utils.np2d(np.dot(target[1],dl*SC[1]))
-    # Integral (detector * L41)
-    integralNorm = lx.utils.np2d(np.dot(detectors[1:],dl*SC[1])).T
-    # normalized detector responsivities
-    detectorNorm=targetNorm/integralNorm*detectors[1:]
+        # Integral (target*L41)
+        targetNorm = lx.utils.np2d(np.dot(target[1],dl*SC[1]))
+        # Integral (detector * L41)
+        integralNorm = lx.utils.np2d(np.dot(detectors[1:],dl*SC[1])).T
+        # normalized detector responsivities
+        detectorNorm=targetNorm/integralNorm*detectors[1:]
+    else:
+        target = None
+        detectorNorm = detectors[1:]
     # add the wavelength scale to the field
     detectorNorm = np.vstack((detectors[0], detectorNorm))
 
@@ -176,7 +180,8 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
         fig, ax1 = pyplot.subplots()
         for i in range(1, detectorNorm.shape[0]):
             ax1.plot(detectorNorm[0], detectorNorm[i])
-        ax1.plot(target[0], target[1], 'g-', label= r'target '+cieobs)
+        if target:
+            ax1.plot(target[0], target[1], 'g-', label= r'target '+cieobs)
         if spectrum_color:
             plot_spectrum_colors(spdmax=np.max(detectorNorm[1:]), axh=ax1, wavelength_height=-0.05)
 
@@ -193,7 +198,8 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
         ax1.plot(detectorNorm[0], np.mean(detectorNorm[1:,:], axis=0), 'b', label= r'$\bar {s}_{\mathrm{rel}}^{\mathrm{L41}}(\lambda)$')
         ax1.fill_between(detectorNorm[0],np.max(detectorNorm[1:,:], axis=0), np.min(detectorNorm[1:,:],axis=0), alpha=0.2)
         ax1.fill_between(detectorNorm[0],np.quantile(detectorNorm[1:,:], 1-quantil/2, axis=0), np.quantile(detectorNorm[1:,:],quantil/2, axis=0), alpha=0.5)
-        ax1.plot(target[0], target[1], 'g-', label= r'target')
+        if target:
+            ax1.plot(target[0], target[1], 'g-', label= r'target')
         ax1.set_ylabel(strd['srelLambda'],fontsize=label_font_size)
         ax1.set_xlabel(strd['xlambda'],fontsize=label_font_size)
         ax1.tick_params(axis='both', direction='out')
@@ -211,7 +217,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
 
     # short evaluation with f1p values (calibration A, for the selected target function and observer)
     f1p=lx.spectral_mismatch_and_uncertainty.f1prime(detectors, S_C='A', cieobs=cieobs, s_target_index=s_target_index)
-    print(f1p)
+    #print(f1p)
     return detectorNorm, f1p
 
 def plotCorrelation( image, wl_scale, name):

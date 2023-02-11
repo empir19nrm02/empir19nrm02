@@ -10,7 +10,7 @@ from .draw_values import sumMC, sumMCV
 from .help import label_font_size
 
 __all__ = ['plotSelectedSPD','plotSPDs','plotYxy', 'plotHist', 'plotCorrMatrixSmall',
-           'plotHistScales','plotHistScalesWl','plotHistScalesValue','confidence_ellipse','aspectratio_to_one','plot_2D',
+           'plotHistScales','plotHistScalesWl','plotHistScalesValue','plotHistGauss','confidence_ellipse','aspectratio_to_one','plot_2D',
            'array2analyse','analyse_stat','get_data_step','seaborn_plot_basedata', 'seaborn_plot_result']
 
 def plotSPDs(SPDs, title='SDs', fileName=None,fontsize=None, normalize = True, log=False):
@@ -88,10 +88,33 @@ def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCo
         pyplot.savefig(fileName)
 
 
-def gauss( x, mean, stddev):
+def gauss( x, mean, stddev, relative = False):
     y = np.zeros_like(x)
     y = 1 / (stddev * np.sqrt(2 * np.pi)) * np.exp(- (x - mean) ** 2 / (2 * stddev ** 2))
+    if relative:
+        y /= np.max(y)
     return y
+def plotHistGauss(data, ax=None, bins=50, density=True,
+                   title='Title', xLabel='xLabel', yLabel=None,
+                   fontsize=None, relative = True, color = 'r'):
+    if ax == None:
+        fig, ax1 = plt.subplots()
+    else:
+        ax1 = ax
+
+    n_hist, bins_hist = np.histogram(data[1:].flatten(), bins=bins, density=density)
+    # stat over all
+    [value, interval] = sumMC(data, Coverage=0.95)
+    ax1.plot(bins_hist, gauss(bins_hist, value[0], value[1],relative=relative), color, linewidth=2, label=title)
+    ax1.set_xlabel(xLabel, fontsize=fontsize)
+    ax1.set_title(title)
+    ax1.legend()
+    if yLabel is None:
+        ax1.set_ylabel('Probability')
+    else:
+        ax1.set_ylabel(yLabel)
+    return ax1
+
 def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
                    title='Title', xLabel='xLabel', yLabel=None,
                    filename=None, fontsize=None, add_distribution = False):
@@ -319,15 +342,67 @@ def aspectratio_to_one( ax):
     print( (abs((x_right-x_left)/(y_low-y_high))))
     ax.set_aspect(abs((x_right-x_left)/(y_low-y_high))*ratio)
 
-def plot_2D( inVec, number = 100):
-    fig, ax1 = pyplot.subplots()
-    _, step = get_data_step(len(inVec.val[:,0]), number)
-    ax1.plot(inVec.val[::step,0], inVec.val[::step,1], 'rx' , label = 'Label')
-    confidence_ellipse(inVec.val[:,0], inVec.val[:,1], ax1, n_std=2.45, edgecolor='k')
+#def plot_2D( inVec, number = 100):
+#    fig, ax1 = pyplot.subplots()
+#    _, step = get_data_step(len(inVec.val[:,0]), number)
+#    ax1.plot(inVec.val[::step,0], inVec.val[::step,1], 'rx' , label = 'Label')
+#    confidence_ellipse(inVec.val[:,0], inVec.val[:,1], ax1, n_std=2.45, edgecolor='k')
+#    ax1.grid(visible=True)
+#    ax1.legend()
+#    ax1.set_xlabel('x', fontsize=label_font_size)
+#    ax1.set_ylabel('y', fontsize=label_font_size)
+#    ax1.set_aspect('equal')
+#    #aspectratio_to_one(ax1)
+
+def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pyplot.axes=None, center_data:bool=False, k_display=1, offset=0):
+    """
+    show 2D measurement data in a diagram with  .
+
+    Args:
+        :inVec:
+            | result of a MCSimulation with data to be displayed
+        :number:
+            | number of points to be selected for display
+            | if number == 0, there is no display of the data points itself
+        :name:
+            | name of the data, if None the name from the MCS is used
+        :marker_color:
+            | color for the marker in the diagram
+        :ax1:
+            | diagram to be continued, if None a new one is generated
+        :center_data:
+            | False, display the data as they are, True: put the mean value in the centre
+
+    Returns:
+        :returns:
+            | axis for further operations
+
+    Note:
+        Attention: no error management
+    """
+    if not ax1:
+        _, ax1 = pyplot.subplots()
+    if not name:
+        name = inVec.name.name
+    data_x = inVec.val[:, 0+offset].copy()
+    data_y = inVec.val[:, 1+offset].copy()
+    if center_data:
+        data_x = data_x - np.mean(data_x)
+        data_y = data_y - np.mean(data_y)
+    # display the mean value
+    ax1.plot([np.mean(data_x)], [np.mean(data_y)], marker_color + 'o', label=name, markersize=10)
+    if number:
+        _, step = get_data_step(len(data_x), number)
+        ax1.plot(data_x[::step], data_y[::step], marker_color + 'x')
+    confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2)
     ax1.grid(visible=True)
     ax1.legend()
-    ax1.set_xlabel('x', fontsize=label_font_size)
-    ax1.set_ylabel('y', fontsize=label_font_size)
-    ax1.set_aspect('equal')
-    #aspectratio_to_one(ax1)
+    if center_data:
+        ax1.set_xlabel(r'$x-\bar{x}$', fontsize=label_font_size)
+        ax1.set_ylabel(r'$y-\bar{y}$', fontsize=label_font_size)
+    else:
+        ax1.set_xlabel(r'$x$', fontsize=label_font_size)
+        ax1.set_ylabel(r'$y$', fontsize=label_font_size)
 
+    ax1.set_aspect('equal')
+    return ax1

@@ -37,11 +37,11 @@ def extract_data_from_array(allCells:ndarray, wlColumn = 0, valColumn=1, stdColu
             mcVectorVar.set_vector_param(v_mean=signal, v_std=std, corr=corr_matrix)
     return wl, mcVectorVar
 
-def is_valid_number(str):
-    if not str:
+def is_valid_number(_str):
+    if _str is None:
         return False
     try:
-        float(str)
+        float(_str)
         return True
     except ValueError:
         return False
@@ -80,7 +80,7 @@ def load_from_excel_raw(filename:str, worksheet:str=None):
     allCellsStr = np.array([[cell.value for cell in row] for row in ws.iter_rows()],dtype=str)
 
     return allCellsStr, allCells
-def load_from_excel(filename:str, worksheet:str=None, wlColumn = 1, valColumn=2, stdColumn = None, covColumn=3, corrColumn = None, startRow=2):
+def load_from_excel(filename:str, worksheet:str=None, wlColumn = 1, valColumn=2, stdColumn = None, covColumn=4, corrColumn = None, startRow=2):
     """
     Reads data from excel file to create an instance of MCVectorVar.
 
@@ -253,7 +253,7 @@ def save_to_excel(wl:ndarray|MCVectorVar, mcvar:MCVectorVar, filename:str, works
 
     ws = wb[worksheet]
 
-    df = collect_data(wl, mcvar, use_runData)
+    df = collect_data(wl, mcvar, use_runData=use_runData)
 
     for i, r in enumerate( dataframe_to_rows(df, index=True, header=True), start=1):
         for j, text in enumerate(r, start=1):
@@ -288,7 +288,7 @@ def save_to_csv(wl:ndarray|MCVectorVar, mcvar:MCVectorVar, filename:str, sep=','
         Attention: no error management
     """
 
-    df = collect_data(wl, mcvar, use_runData)
+    df = collect_data(wl, mcvar, use_runData=use_runData)
     if not '.csv' in filename:
         filename = filename + '.csv'
     df.to_csv(filename, sep=sep, decimal=decimal)

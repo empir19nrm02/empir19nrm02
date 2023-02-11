@@ -14,6 +14,7 @@ from dataclasses import dataclass
 import copy
 
 from luxpy import SPD
+import pandas as pd
 import traceback
 from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumMCV
 from empir19nrm02.tools import  plot_2D, plotHistScales
@@ -42,8 +43,13 @@ class   DistributionParam(object):
         return 'Distribution: Mean:{0:.4f}, StdDev: {1:.4f}, Dist: {2}, Add_Param: {3}'.format(self.mean, self.stddev, self.distribution, self.add_params)
 @dataclass
 class   NameUnit(object):
-    name: str = 'Name'
-    unit: str = 'Unit'
+    name:list['Name']
+    unit:list ['Unit']
+    def get_name_unit(self, i:int=0):
+        if isinstance(self.name, str):
+            return self.name, self.unit
+        if isinstance(self.name, list) and i < len(self.name):
+            return self.name[i], self.unit[i]
 @dataclass
 class   SetParams(object):
     trials: int = default_trials
@@ -146,10 +152,8 @@ def McVar_test():
     var2Load.print_stat(out_all=True)
 
 noise_list_default = {'nc_add': DistributionParam(),
-                      'c_add': DistributionParam(),
                       'f_add': DistributionParam(),
                       'nc_mul': DistributionParam(),
-                      'c_mul': DistributionParam(),
                       'f_mul': DistributionParam(),
                     }
 @dataclass
@@ -190,6 +194,7 @@ class MCVectorVar(MCVar):
                 self.setData.v_std = np.zeros_like(self.setData.v_mean)
                 self.setData.cov_matrix = np.zeros((self.elements, self.elements))
                 self.setData.corr_matrix = np.zeros((self.elements, self.elements))
+        self.setParam.distribution = DistributionParam(mean = np.mean(self.setData.v_mean), stddev=np.mean(self.setData.v_std), distribution='normal')
 
     def allocate(self, trials:int = default_trials, step:int = 0):
         self.setParam.trials = trials
@@ -216,14 +221,10 @@ class MCVectorVar(MCVar):
                         match noise:
                             case 'nc_add':
                                 self.val[i] = self.add_noise_nc_add(self.val[i], params).copy()
-                            case 'c_add':
-                                self.val[i] = self.add_noise_c_add(self.val[i], params).copy()
                             case 'f_add':
                                 self.val[i] = self.add_fourier_noise_add(self.val[i], params).copy()
                             case 'nc_mul':
                                 self.val[i] = self.add_noise_nc_mul(self.val[i], params).copy()
-                            case 'c_mul':
-                                self.val[i] = self.add_noise_c_mul(self.val[i], params).copy()
                             case 'f_mul':
                                 self.val[i] = self.add_fourier_noise_mul(self.val[i], params).copy()
                             case _: print( noise, ' Not implemented')
@@ -252,10 +253,6 @@ class MCVectorVar(MCVar):
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
         return tmpData + noise
 
-    def add_noise_c_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
-        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0]
-        return noise + tmpData
-
     def add_fourier_noise_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = generate_FourierMC0( params.add_params, self.elements, params.stddev)
         return noise + tmpData
@@ -264,9 +261,6 @@ class MCVectorVar(MCVar):
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
         return tmpData * (1. + noise)
 
-    def add_noise_c_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
-        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0]
-        return (1. + noise) * tmpData
     def add_fourier_noise_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = (1+generate_FourierMC0( params.add_params, self.elements, params.stddev))
         return noise * tmpData
@@ -319,11 +313,14 @@ class MCVectorVar(MCVar):
         self.calc_corr_matrix_data()
         return self.runData.cov_matrix
 
-    def interpolate(self, wl_new, wl_current, kind='S'):
+    def interpolate(self, wl_new, wl_current, kind='S', trials:int = None):
         if wl_current.shape[0] != self.elements:
             raise ValueError( f'Elements {self.elements} and shape of wl_current {wl_current.shape[0]} do not match')
         if self.val is None or self.val.shape[0] != self.setParam.trials:
-            self.generate_numbers()
+            if trials:
+                self.generate_numbers(trials=trials)
+            else:
+                self.generate_numbers(self.setParam.trials)
         valPlus = np.vstack((wl_current, self.val))
         self.val = lx.cie_interp(valPlus, wl_new, kind=kind)[1:]
         self.elements = wl_new.shape[0]
@@ -345,7 +342,7 @@ class MCVectorVar(MCVar):
         if mode == 'nearcorr':
             # or for the coorlation matrix only:
             X=make_symm(self.setData.corr_matrix)
-            X_n=nearcorr(X)
+            X_n=nearcorr(X, tol=[1e-4])
             self.setData.corr_matrix = X_n.copy()
             self.calc_cov_matrix_set()
             print("MaxDiff nearcorr:", np.max(np.abs(X-X_n)))
@@ -360,7 +357,8 @@ class MCVectorVar(MCVar):
             k = np.where(eigenValues < ratio*eigenValues[0])
             eigenValues[k[0][0]:] = eigenValues[k[0][0]]
             X_n=eigenVectors @ np.diag(eigenValues) @ np.linalg.inv(eigenVectors)
-            self.setData.corr_matrix = X_n.copy()
+            # to avoid complex matrices, the img. part is usually quite small
+            self.setData.corr_matrix = X_n.real.copy()
             self.calc_cov_matrix_set()
             print("MaxDiff eigenvalues:", np.max(np.abs(X-X_n)))
 
@@ -397,6 +395,8 @@ class MCSpectrumVar(MCVar):
     """
     Spectrum class for MC simulations
     An object holds a spectrum (class luxpy.SPD) with only one wavelength scale and one value array
+
+    *** obsolate ****
 
     With different
 
@@ -539,9 +539,63 @@ class MCSimulation(object):
                         x = x0.copy()
                         x[k] = self.input_var[k][i]
                 res = model(*x)
-                #ToDo: funktioniert noch nicht für Vectoren am Ausgang, daher Einzelelemente nehmen
                 for j, var_out in enumerate(self.output_var[k]):
                     var_out[i] = res[j]
+
+    def get_result_db(self):
+        res_data = None
+        colum_names = ['Input', ' ', 'Mean', 'StdDev', 'Distr', 'Add_Param']
+        for i in range(len(self.input_var)+1):
+            if i < len(self.input_var):
+                if self.input_var[i].name:
+                    line_data = [self.input_var[i].name.get_name_unit()[0]]
+                else:
+                    line_data = ['Input#' + str(i)]
+                if isinstance(self.input_var[i], MCVectorVar) and self.input_var[i].noise_list:
+                    for key in self.input_var[i].noise_list:
+                        line_data.append(key)
+                        line_data.append(self.input_var[i].noise_list[key].mean)
+                        line_data.append(self.input_var[i].noise_list[key].stddev)
+                        line_data.append(self.input_var[i].noise_list[key].distribution)
+                        line_data.append(self.input_var[i].noise_list[key].add_params)
+                else:
+                    line_data.append(' ')
+                    line_data.append(self.input_var[i].setParam.distribution.mean)
+                    line_data.append(self.input_var[i].setParam.distribution.stddev)
+                    line_data.append(self.input_var[i].setParam.distribution.distribution)
+                    line_data.append(self.input_var[i].setParam.distribution.add_params)
+            else:
+                line_data = ['All']
+                for i in range(5):
+                    line_data.append(' ')
+
+            for var in self.output_var[0]:
+                if isinstance(var, MCVectorVar):
+                    if var.elements < 5:
+                        var.val[:,0]=var.val[:,0]/var.val[0,0]
+                        [values, interval] = sumMCV(var.val)
+                        for k in range(var.elements):
+                            line_data.append(values[0][k])
+                            line_data.append(values[1][k])
+                            if i == 0:
+                                colum_names.append(var.name.get_name_unit(k)[0])
+                                colum_names.append('u('+var.name.get_name_unit(k)[0]+')')
+                else:
+                    [values, interval] = sumMC(var.val)
+                    line_data.append(values[0])
+                    line_data.append(values[1])
+                    if i == 0:
+                        colum_names.append(var.name.get_name_unit()[0])
+                        colum_names.append('u('+var.name.get_name_unit()[0]+')')
+            if res_data is None:
+                res_data = pd.DataFrame( line_data)
+            else:
+                res_data = pd.concat( [res_data, pd.DataFrame( line_data)], axis=1)
+
+        res_data = res_data.transpose()
+        res_data.columns =  colum_names
+        res_data.reset_index(inplace=True)
+        return res_data
 
 def McSim_main():
     McVar_test()
