@@ -90,9 +90,10 @@ def plotCorrMatrixSmall(corr_data, data_labels, y_data_labels=None, iRaws=0, iCo
 
 def gauss( x, mean, stddev, relative = False):
     y = np.zeros_like(x)
-    y = 1 / (stddev * np.sqrt(2 * np.pi)) * np.exp(- (x - mean) ** 2 / (2 * stddev ** 2))
-    if relative:
-        y /= np.max(y)
+    if stddev > np.finfo(float).eps:
+        y = 1 / (stddev * np.sqrt(2 * np.pi)) * np.exp(- (x - mean) ** 2 / (2 * stddev ** 2))
+        if relative and abs(np.max(y))>np.finfo(float).eps:
+            y /= np.max(y)
     return y
 def plotHistGauss(data, ax=None, bins=50, density=True,
                    title='Title', xLabel='xLabel', yLabel=None,

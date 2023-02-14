@@ -18,7 +18,7 @@ import pandas as pd
 import traceback
 from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumMCV
 from empir19nrm02.tools import  plot_2D, plotHistScales
-from empir19nrm02.MC import  generate_FourierMC0
+from empir19nrm02.MC import  generate_FourierMC0, generate_chebyshevMC0
 import numpy as np
 from numpy import ndarray
 import luxpy as lx
@@ -254,7 +254,10 @@ class MCVectorVar(MCVar):
         return tmpData + noise
 
     def add_fourier_noise_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
-        noise = generate_FourierMC0( params.add_params, self.elements, params.stddev)
+        if params.add_params >= 0:
+            noise = generate_FourierMC0( params.add_params, self.elements, params.stddev)
+        else:
+            noise = generate_chebyshevMC0(abs(params.add_params), self.elements, params.stddev)
         return noise + tmpData
 
     def add_noise_nc_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
@@ -262,7 +265,10 @@ class MCVectorVar(MCVar):
         return tmpData * (1. + noise)
 
     def add_fourier_noise_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
-        noise = (1+generate_FourierMC0( params.add_params, self.elements, params.stddev))
+        if params.add_params >= 0:
+            noise = (1+generate_FourierMC0( params.add_params, self.elements, params.stddev))
+        else:
+            noise = (1 + generate_chebyshevMC0(abs(params.add_params), self.elements, params.stddev))
         return noise * tmpData
 
     def print_stat(self):
@@ -545,7 +551,7 @@ class MCSimulation(object):
     def get_result_db(self):
         res_data = None
         colum_names = ['Input', ' ', 'Mean', 'StdDev', 'Distr', 'Add_Param']
-        for i in range(len(self.input_var)+1):
+        for i in range(self.in_elements):
             if i < len(self.input_var):
                 if self.input_var[i].name:
                     line_data = [self.input_var[i].name.get_name_unit()[0]]
@@ -566,20 +572,21 @@ class MCSimulation(object):
                     line_data.append(self.input_var[i].setParam.distribution.add_params)
             else:
                 line_data = ['All']
-                for i in range(5):
+                for _ in range(5):
                     line_data.append(' ')
 
-            for var in self.output_var[0]:
+            for k in range( len( self.output_var[0])):
+                var = self.output_var[i][k]
                 if isinstance(var, MCVectorVar):
                     if var.elements < 5:
                         var.val[:,0]=var.val[:,0]/var.val[0,0]
                         [values, interval] = sumMCV(var.val)
-                        for k in range(var.elements):
-                            line_data.append(values[0][k])
-                            line_data.append(values[1][k])
+                        for l in range(var.elements):
+                            line_data.append(values[0][l])
+                            line_data.append(values[1][l])
                             if i == 0:
-                                colum_names.append(var.name.get_name_unit(k)[0])
-                                colum_names.append('u('+var.name.get_name_unit(k)[0]+')')
+                                colum_names.append(var.name.get_name_unit(l)[0])
+                                colum_names.append('u('+var.name.get_name_unit(l)[0]+')')
                 else:
                     [values, interval] = sumMC(var.val)
                     line_data.append(values[0])
@@ -593,13 +600,36 @@ class MCSimulation(object):
                 res_data = pd.concat( [res_data, pd.DataFrame( line_data)], axis=1)
 
         res_data = res_data.transpose()
-        res_data.columns =  colum_names
+        res_data.columns = colum_names
         res_data.reset_index(inplace=True)
         return res_data
 
 def McSim_main():
-    McVar_test()
-    MCVector_test()
+    #McVar_test()
+    #MCVector_test()
+    mc1 = MCVar(name=NameUnit('V1', 'U1'), distribution=DistributionParam(mean=1.,stddev=2., distribution='normal'))
+    mc2 = MCVar(name=NameUnit('V2', 'U2'), distribution=DistributionParam(mean=2.,stddev=4., distribution='normal'))
+
+    # define some output data (as MCVar to make an analysis after the run)
+    mcOut = MCVar(name=NameUnit('Plus','UnitPlus'))
+    def model_easy( a, b):
+        return a+b
+
+    input = [mc1, mc2]
+    output = [mcOut]
+
+    sim = MCSimulation(trials=100)
+    # set the input and output data
+    sim.set_input_var(input)
+    sim.set_output_var(output)
+    # generate/load the random numbers
+    sim.generate()
+    # calculate the model
+    sim.calculate_model(model_easy)
+
+    res_data = sim.get_result_db()
+    print(res_data)
+
 
 if __name__ == '__main__':
     print( 'MCSim Test Start')
