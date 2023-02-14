@@ -57,8 +57,8 @@ def get_fig_file_name(dir=None, filename=None, table=False):
 
 def save_fig(dir = None, filename=None, fig=None):
     name = get_fig_file_name(dir=dir, filename=filename)
-#    if dir and not os.path.exists(dir):
-#        os.makedirs(dir)
+    if dir and not os.path.exists(dir):
+        os.makedirs(dir)
     if fig is None:
         pyplot.savefig( name, bbox_inches='tight', pad_inches=0)
         pyplot.show()

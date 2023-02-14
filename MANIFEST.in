@@ -1,0 +1,8 @@
+include empir19nrm02/data/*.dat
+include empir19nrm02/data/*.txt
+include empir19nrm02/data/*.csv
+include empir19nrm02/data/spd/*.txt
+include empir19nrm02/data/spd/*.csv
+include empir19nrm02/data/res/*.txt
+include empir19nrm02/data/res/*.csv
+

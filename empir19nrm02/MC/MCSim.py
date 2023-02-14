@@ -18,7 +18,7 @@ import pandas as pd
 import traceback
 from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumMCV
 from empir19nrm02.tools import  plot_2D, plotHistScales
-from empir19nrm02.MC import  generate_FourierMC0
+from empir19nrm02.MC.FourierNoise import  generate_FourierMC0
 import numpy as np
 from numpy import ndarray
 import luxpy as lx

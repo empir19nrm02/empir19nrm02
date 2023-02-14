@@ -17,21 +17,21 @@ __CITE__ = 'cite'; """ Citation info """
 __all__ = ['__version__','__VERSION__','__AUTHOR__','__EMAIL__', '__URL__','__DATE__',
            '__COPYRIGHT__','__LICENSE__','__DOI__','__CITE__']
 
-import empir19nrm02.spectral
+from empir19nrm02 import spectral
 __all__ += spectral.__all__
 __all__ += ['spectral']
 
-import empir19nrm02.tools
+from empir19nrm02 import tools
 __all__ += tools.__all__
 __all__ += ['tools']
 
-import empir19nrm02.f1prime
+from empir19nrm02 import f1prime
 __all__ += f1prime.__all__
 __all__ += ['f1prime']
 
 from empir19nrm02.spectral.spectral_data import _SPD, _RES
 __all__ += ['_SPD', '_RES']
 
-import empir19nrm02.MC
+from empir19nrm02 import MC
 __all__ += MC.__all__
 __all__ += ['MC']

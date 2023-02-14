@@ -3,3 +3,6 @@
 *.npy
 *.svg
 *_k.csv
+*.egg-info/
+build/
+dist/

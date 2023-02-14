@@ -1,6 +1,8 @@
 #ToDo   Documentation für die Installation erstllen
 #ToDo   Infotext zu den spektralen Daten einbauen
 
+#ToDo   Lizenzangaben konsistent halten
+
 #ToDo   Test Generatorfunktionen für Zufallszahlen (Generator, FileSave, Multivariate repeater)
 #ToDo   FourierNoise (Dokumentieren, Testen (PetriTable generieren und mit Publikation vergleichen)
 
