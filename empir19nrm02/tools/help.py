@@ -180,7 +180,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
         fig, ax1 = pyplot.subplots()
         for i in range(1, detectorNorm.shape[0]):
             ax1.plot(detectorNorm[0], detectorNorm[i])
-        if target:
+        if target is not None:
             ax1.plot(target[0], target[1], 'g-', label= r'target '+cieobs)
         if spectrum_color:
             plot_spectrum_colors(spdmax=np.max(detectorNorm[1:]), axh=ax1, wavelength_height=-0.05)
@@ -198,7 +198,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
         ax1.plot(detectorNorm[0], np.mean(detectorNorm[1:,:], axis=0), 'b', label= r'$\bar {s}_{\mathrm{rel}}^{\mathrm{L41}}(\lambda)$')
         ax1.fill_between(detectorNorm[0],np.max(detectorNorm[1:,:], axis=0), np.min(detectorNorm[1:,:],axis=0), alpha=0.2)
         ax1.fill_between(detectorNorm[0],np.quantile(detectorNorm[1:,:], 1-quantil/2, axis=0), np.quantile(detectorNorm[1:,:],quantil/2, axis=0), alpha=0.5)
-        if target:
+        if target is not None:
             ax1.plot(target[0], target[1], 'g-', label= r'target')
         ax1.set_ylabel(strd['srelLambda'],fontsize=label_font_size)
         ax1.set_xlabel(strd['xlambda'],fontsize=label_font_size)

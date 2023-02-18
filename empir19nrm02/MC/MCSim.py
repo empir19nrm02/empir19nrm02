@@ -18,14 +18,14 @@ import pandas as pd
 import traceback
 from empir19nrm02.tools import draw_values_gum, sumMC, make_symm, nearcorr, sumMCV
 from empir19nrm02.tools import  plot_2D, plotHistScales
-from empir19nrm02.MC import  generate_FourierMC0, generate_chebyshevMC0
+from empir19nrm02.MC import  generate_base_functions
 import numpy as np
 from numpy import ndarray
 import luxpy as lx
 import pickle
 
 
-__all__ = ['DistributionParam', 'NameUnit', 'MCVar', 'MCVectorVar', 'MCSpectrumVar', 'MCSimulation', 'noise_list_default', 'pickle_copy', 'StatDataVector']
+__all__ = ['DistributionParam', 'NameUnit', 'MCVar', 'MCVectorVar', 'MCSimulation', 'noise_list_default', 'pickle_copy', 'StatDataVector']
 
 default_trials:int = 10000
 
@@ -38,6 +38,7 @@ class   DistributionParam(object):
         self.mean = mean
         self.stddev = stddev
         self.distribution = distribution
+        # additional control for the base function approach with 'f 7 s' (fourier N=7 single base function)
         self.add_params = add_params
     def __str__(self):
         return 'Distribution: Mean:{0:.4f}, StdDev: {1:.4f}, Dist: {2}, Add_Param: {3}'.format(self.mean, self.stddev, self.distribution, self.add_params)
@@ -139,7 +140,7 @@ def McVar_test():
     var1Load.print_stat(out_all=True)
 
     var2 = MCVar(name=NameUnit('var2', 'Unit_var2'),
-                 distribution=DistributionParam(mean=1, stddev=2, distribution='triangle', add_params=4))
+                 distribution=DistributionParam(mean=1, stddev=2, distribution='triangle', add_params='f 4'))
     var2.generate_numbers()
     var2.print_stat(out_all=True)
     var2.pickle()
@@ -222,11 +223,12 @@ class MCVectorVar(MCVar):
                             case 'nc_add':
                                 self.val[i] = self.add_noise_nc_add(self.val[i], params).copy()
                             case 'f_add':
-                                self.val[i] = self.add_fourier_noise_add(self.val[i], params).copy()
+                                noise = self.add_base_function_noise_add(self.val[i], params)
+                                self.val[i] = noise.copy()
                             case 'nc_mul':
                                 self.val[i] = self.add_noise_nc_mul(self.val[i], params).copy()
                             case 'f_mul':
-                                self.val[i] = self.add_fourier_noise_mul(self.val[i], params).copy()
+                                self.val[i] = self.add_base_function_noise_mul(self.val[i], params).copy()
                             case _: print( noise, ' Not implemented')
             # store the first value as reference
             self.calc_cov_matrix_from_data()
@@ -253,22 +255,16 @@ class MCVectorVar(MCVar):
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
         return tmpData + noise
 
-    def add_fourier_noise_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
-        if params.add_params >= 0:
-            noise = generate_FourierMC0( params.add_params, self.elements, params.stddev)
-        else:
-            noise = generate_chebyshevMC0(abs(params.add_params), self.elements, params.stddev)
+    def add_base_function_noise_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = generate_base_functions( params.add_params, self.elements, params.stddev)
         return noise + tmpData
 
     def add_noise_nc_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
         return tmpData * (1. + noise)
 
-    def add_fourier_noise_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
-        if params.add_params >= 0:
-            noise = (1+generate_FourierMC0( params.add_params, self.elements, params.stddev))
-        else:
-            noise = (1 + generate_chebyshevMC0(abs(params.add_params), self.elements, params.stddev))
+    def add_base_function_noise_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = (1+generate_base_functions( params.add_params, self.elements, params.stddev))
         return noise * tmpData
 
     def print_stat(self):
@@ -397,114 +393,114 @@ def MCVector_test():
     plot_2D(var3V, number=1000)
 
 
-class MCSpectrumVar(MCVar):
-    """
-    Spectrum class for MC simulations
-    An object holds a spectrum (class luxpy.SPD) with only one wavelength scale and one value array
-
-    *** obsolate ****
-
-    With different
-
-    Example:
-
-    Default Values:
-    """
-
-    def __init__(self, name:NameUnit = None, spd=None, noise_list:dict = None):
-        super().__init__(name = name)
-        if spd is None:
-            self.spd = lx.SPD(spd=lx.cie_interp(lx._CIE_ILLUMINANTS['A'], lx.getwlr(), kind='S'), wl=lx.getwlr(),
-                              negative_values_allowed=True)
-        else:
-            newSPD = np.vstack((spd.wl, spd.value))
-            self.spd = lx.SPD(spd=newSPD, negative_values_allowed=True)
-        # to remember the number of elements
-        self.wlElements = len(self.spd.wl)
-
-
-    # interpolate all data in self.values to the nominal wavelength scale
-    # Attention: No update of statistical information here
-    def normalize_wl_scale(self):
-        for i in range(1, self.trials):
-            self.val[i].cie_interp(self.val[0].wl, kind = 'linear', negative_values_allowed=True)
-        return
-
-    def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
-        #print('generate_numbers:', self.name)
-        super().generate_numbers(trials, step, file)
-        self.val = np.empty(self.trials, dtype=object)
-        # This handles the 0 index object automatically
-        newSPD = np.vstack((self.spd.wl, self.spd.value))
-        for i in range(self.trials):
-            self.val[i] = lx.SPD(spd=newSPD, negative_values_allowed=True)
-        if file is None:
-            # start from 1 to hold the first item as reference
-            for i in range(1, self.trials):
-                for noise, params in self.noise_list.items():
-                    match noise:
-                        case 'wl_nc':
-                            #print( 'wl_nc', noise)
-                            self.add_wl_noise_nc( self.val[i], params)
-                        case 'wl_c':
-                            #print( 'wl_c', noise)
-                            self.add_wl_noise_c( self.val[i], params)
-                        case 'wl_f':
-                            #print( 'wl_f', noise)
-                            self.add_wl_fourier_noise( self.val[i], params)
-                        case 'v_nc':
-                            #print( 'v_nc', noise)
-                            self.add_value_noise_nc( self.val[i], params)
-                        case 'v_c':
-                            #print( 'v_c', noise)
-                            self.add_value_noise_c( self.val[i], params)
-                        case 'v_f':
-                            #print( 'v_f', noise)
-                            self.add_value_fourier_noise( self.val[i], params)
-                        case 'all':
-                            if 'wl_nc' in self.noise_list:
-                                #print( 'wl_nc->all', noise)
-                                self.add_wl_noise_nc( self.val[i], self.noise_list['wl_nc'])
-                            if 'wl_c' in self.noise_list:
-                                #print( 'wl_c->all', noise)
-                                self.add_wl_noise_c( self.val[i], self.noise_list['wl_c'])
-                            if 'wl_f' in self.noise_list:
-                                #print( 'wl_f->all', noise)
-                                self.add_wl_fourier_noise( self.val[i], self.noise_list['wl_f'])
-                            if 'v_nc' in self.noise_list:
-                                #print( 'v_nc->all', noise)
-                                self.add_value_noise_nc( self.val[i], self.noise_list['v_nc'])
-                            if 'v_c' in self.noise_list:
-                                #print( 'v_c->all', noise)
-                                self.add_value_noise_c( self.val[i], self.noise_list['v_c'])
-                            if 'v_f' in self.noise_list:
-                                #print( 'v_f->all', noise)
-                                self.add_value_fourier_noise( self.val[i], self.noise_list['v_f'])
-        else:
-            #Load data from file
-            print('Not yet implemented')
-        self.normalize_wl_scale()
-
-    def add_wl_noise_nc(self, spd_tmp:SPD, params:DistributionParam)->None:
-        spd_tmp.wl = spd_tmp.wl + draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.wlElements, distribution=params.distribution)
-
-    def add_wl_noise_c(self, spd_tmp:SPD, params:DistributionParam)->None:
-        spd_tmp.wl = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0] + spd_tmp.wl
-
-    def add_wl_fourier_noise(self, spd_tmp:SPD, params:DistributionParam)->None:
-        spd_tmp.wl = generate_FourierMC0( params.add_params, self.spd.wl, params.stddev) + spd_tmp.wl
-
-    def add_value_noise_nc(self, spd_tmp:SPD, params:DistributionParam)->None:
-        spd_tmp.value = spd_tmp.value + draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.wlElements, distribution=params.distribution)
-
-    def add_value_noise_c(self, spd_tmp:SPD, params:DistributionParam)->None:
-        spd_tmp.value = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0] + spd_tmp.value
-
-    def add_value_fourier_noise(self, spd_tmp:SPD, params:DistributionParam)->None:
-        #print('add_value_fourier_noise:', params.add_params, params.stddev, np.min(self.spd.wl), np.max(self.spd.wl),np.min(spd_tmp.value), np.max(spd_tmp.value) )
-        spd_tmp.value = (1+generate_FourierMC0( params.add_params, self.spd.wl, params.stddev)) * spd_tmp.value
-        #print('add_value_fourier_noise2:', np.min(spd_tmp.wl), np.max(spd_tmp.wl),np.min(spd_tmp.value), np.max(spd_tmp.value) )
-
+#class MCSpectrumVar(MCVar):
+#    """
+#    Spectrum class for MC simulations
+#    An object holds a spectrum (class luxpy.SPD) with only one wavelength scale and one value array
+#
+#    *** obsolate ****
+#
+#    With different
+#
+#    Example:
+#
+#    Default Values:
+#    """
+#
+#    def __init__(self, name:NameUnit = None, spd=None, noise_list:dict = None):
+#        super().__init__(name = name)
+#        if spd is None:
+#            self.spd = lx.SPD(spd=lx.cie_interp(lx._CIE_ILLUMINANTS['A'], lx.getwlr(), kind='S'), wl=lx.getwlr(),
+#                              negative_values_allowed=True)
+#        else:
+#            newSPD = np.vstack((spd.wl, spd.value))
+#            self.spd = lx.SPD(spd=newSPD, negative_values_allowed=True)
+#        # to remember the number of elements
+#        self.wlElements = len(self.spd.wl)
+#
+#
+#    # interpolate all data in self.values to the nominal wavelength scale
+#    # Attention: No update of statistical information here
+#    def normalize_wl_scale(self):
+#        for i in range(1, self.trials):
+#            self.val[i].cie_interp(self.val[0].wl, kind = 'linear', negative_values_allowed=True)
+#        return
+#
+#    def generate_numbers(self, trials:int = default_trials, step:int = 0, file:str = None):
+#        #print('generate_numbers:', self.name)
+#        super().generate_numbers(trials, step, file)
+#        self.val = np.empty(self.trials, dtype=object)
+#        # This handles the 0 index object automatically
+#        newSPD = np.vstack((self.spd.wl, self.spd.value))
+#        for i in range(self.trials):
+#            self.val[i] = lx.SPD(spd=newSPD, negative_values_allowed=True)
+#        if file is None:
+#            # start from 1 to hold the first item as reference
+#            for i in range(1, self.trials):
+#                for noise, params in self.noise_list.items():
+#                    match noise:
+#                        case 'wl_nc':
+#                            #print( 'wl_nc', noise)
+#                            self.add_wl_noise_nc( self.val[i], params)
+#                        case 'wl_c':
+#                            #print( 'wl_c', noise)
+#                            self.add_wl_noise_c( self.val[i], params)
+#                        case 'wl_f':
+#                            #print( 'wl_f', noise)
+#                            self.add_wl_fourier_noise( self.val[i], params)
+#                        case 'v_nc':
+#                            #print( 'v_nc', noise)
+#                            self.add_value_noise_nc( self.val[i], params)
+#                        case 'v_c':
+#                            #print( 'v_c', noise)
+#                            self.add_value_noise_c( self.val[i], params)
+#                        case 'v_f':
+#                            #print( 'v_f', noise)
+#                            self.add_value_fourier_noise( self.val[i], params)
+#                        case 'all':
+#                            if 'wl_nc' in self.noise_list:
+#                                #print( 'wl_nc->all', noise)
+#                                self.add_wl_noise_nc( self.val[i], self.noise_list['wl_nc'])
+#                            if 'wl_c' in self.noise_list:
+#                                #print( 'wl_c->all', noise)
+#                                self.add_wl_noise_c( self.val[i], self.noise_list['wl_c'])
+#                            if 'wl_f' in self.noise_list:
+#                                #print( 'wl_f->all', noise)
+#                                self.add_wl_fourier_noise( self.val[i], self.noise_list['wl_f'])
+#                            if 'v_nc' in self.noise_list:
+#                                #print( 'v_nc->all', noise)
+#                                self.add_value_noise_nc( self.val[i], self.noise_list['v_nc'])
+#                            if 'v_c' in self.noise_list:
+#                                #print( 'v_c->all', noise)
+#                                self.add_value_noise_c( self.val[i], self.noise_list['v_c'])
+#                            if 'v_f' in self.noise_list:
+#                                #print( 'v_f->all', noise)
+#                                self.add_value_fourier_noise( self.val[i], self.noise_list['v_f'])
+#        else:
+#            #Load data from file
+#            print('Not yet implemented')
+#        self.normalize_wl_scale()
+#
+#    def add_wl_noise_nc(self, spd_tmp:SPD, params:DistributionParam)->None:
+#        spd_tmp.wl = spd_tmp.wl + draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.wlElements, distribution=params.distribution)
+#
+#    def add_wl_noise_c(self, spd_tmp:SPD, params:DistributionParam)->None:
+#        spd_tmp.wl = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0] + spd_tmp.wl
+#
+#    def add_wl_fourier_noise(self, spd_tmp:SPD, params:DistributionParam)->None:
+#        spd_tmp.wl = generate_FourierMC0( params.add_params, self.spd.wl, params.stddev) + spd_tmp.wl
+#
+#    def add_value_noise_nc(self, spd_tmp:SPD, params:DistributionParam)->None:
+#        spd_tmp.value = spd_tmp.value + draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.wlElements, distribution=params.distribution)
+#
+#    def add_value_noise_c(self, spd_tmp:SPD, params:DistributionParam)->None:
+#        spd_tmp.value = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)[0] + spd_tmp.value
+#
+#    def add_value_fourier_noise(self, spd_tmp:SPD, params:DistributionParam)->None:
+#        #print('add_value_fourier_noise:', params.add_params, params.stddev, np.min(self.spd.wl), np.max(self.spd.wl),np.min(spd_tmp.value), np.max(spd_tmp.value) )
+#        spd_tmp.value = (1+generate_FourierMC0( params.add_params, self.spd.wl, params.stddev)) * spd_tmp.value
+#        #print('add_value_fourier_noise2:', np.min(spd_tmp.wl), np.max(spd_tmp.wl),np.min(spd_tmp.value), np.max(spd_tmp.value) )
+#
 #%%
 class MCSimulation(object):
     def __init__(self, trials = default_trials):
@@ -550,30 +546,36 @@ class MCSimulation(object):
 
     def get_result_db(self):
         res_data = None
-        colum_names = ['Input', ' ', 'Mean', 'StdDev', 'Distr', 'Add_Param']
+        line_data = {
+            'Input':'',
+            'Unit': '',
+            'Mean':0.,
+            'StdDev': 0,
+            'Distr': 0,
+            }
         for i in range(self.in_elements):
             if i < len(self.input_var):
                 if self.input_var[i].name:
-                    line_data = [self.input_var[i].name.get_name_unit()[0]]
+                    line_data['Input'] = self.input_var[i].name.get_name_unit()[0]
+                    line_data['Unit'] = self.input_var[i].name.get_name_unit()[1]
                 else:
-                    line_data = ['Input#' + str(i)]
+                    line_data['Input'] = 'Input#' + str(i)
+                    line_data['Unit'] = 'Unit#' + str(i)
                 if isinstance(self.input_var[i], MCVectorVar) and self.input_var[i].noise_list:
                     for key in self.input_var[i].noise_list:
-                        line_data.append(key)
-                        line_data.append(self.input_var[i].noise_list[key].mean)
-                        line_data.append(self.input_var[i].noise_list[key].stddev)
-                        line_data.append(self.input_var[i].noise_list[key].distribution)
-                        line_data.append(self.input_var[i].noise_list[key].add_params)
+                        line_data['Mean'] = self.input_var[i].noise_list[key].mean
+                        line_data['StdDev'] = self.input_var[i].noise_list[key].stddev
+                        line_data['Distr'] = self.input_var[i].noise_list[key].distribution + ' ' + self.input_var[i].noise_list[key].add_params
                 else:
-                    line_data.append(' ')
-                    line_data.append(self.input_var[i].setParam.distribution.mean)
-                    line_data.append(self.input_var[i].setParam.distribution.stddev)
-                    line_data.append(self.input_var[i].setParam.distribution.distribution)
-                    line_data.append(self.input_var[i].setParam.distribution.add_params)
+                    line_data['Mean'] = self.input_var[i].setParam.distribution.mean
+                    line_data['StdDev'] = self.input_var[i].setParam.distribution.stddev
+                    line_data['Distr'] = self.input_var[i].setParam.distribution.distribution
             else:
-                line_data = ['All']
-                for _ in range(5):
-                    line_data.append(' ')
+                line_data['Input'] = 'All'
+                line_data['Unit'] = ''
+                line_data['Mean'] = ''
+                line_data['StdDev'] = ''
+                line_data['Distr'] = ''
 
             for k in range( len( self.output_var[0])):
                 var = self.output_var[i][k]
@@ -582,26 +584,17 @@ class MCSimulation(object):
                         var.val[:,0]=var.val[:,0]/var.val[0,0]
                         [values, interval] = sumMCV(var.val)
                         for l in range(var.elements):
-                            line_data.append(values[0][l])
-                            line_data.append(values[1][l])
-                            if i == 0:
-                                colum_names.append(var.name.get_name_unit(l)[0])
-                                colum_names.append('u('+var.name.get_name_unit(l)[0]+')')
+                            line_data[var.name.get_name_unit(l)[0]] = values[0][l]
+                            line_data['u('+var.name.get_name_unit(l)[0]+')'] = values[1][l]
                 else:
                     [values, interval] = sumMC(var.val)
-                    line_data.append(values[0])
-                    line_data.append(values[1])
-                    if i == 0:
-                        colum_names.append(var.name.get_name_unit()[0])
-                        colum_names.append('u('+var.name.get_name_unit()[0]+')')
+                    line_data[var.name.get_name_unit()[0]] = values[0]
+                    line_data['u(' + var.name.get_name_unit()[0] + ')'] = values[1]
             if res_data is None:
-                res_data = pd.DataFrame( line_data)
+                res_data = pd.DataFrame( [line_data])
             else:
-                res_data = pd.concat( [res_data, pd.DataFrame( line_data)], axis=1)
-
-        res_data = res_data.transpose()
-        res_data.columns = colum_names
-        res_data.reset_index(inplace=True)
+                res_data = pd.concat( [res_data, pd.DataFrame( [line_data])])
+        pd.options.display.float_format = '{:,.6f}'.format
         return res_data
 
 def McSim_main():

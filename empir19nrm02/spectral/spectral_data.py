@@ -40,13 +40,14 @@ _SEP = os.sep; """ Operating system separator """
 
 __all__ = ['_PKG_PATH','_SEP']
 
-__all__ += ['_SPD_PATH', '_RES_PATH',
+__all__ += ['_SPD_PATH', '_RES_PATH','_CORR_PATH',
            '_SPD', '_RES',
            '_SPD_BB', '_SPD_PTLED', '_SPD_RGBLED', '_SPD_PHOTOLED', '_SPD_MONOLED', '_SPD_OSRAM_PTLED', '_SPD_OSRAM_MONOLED', '_SPD_TC2_90',
            '_RES_VLDETECTORS', '_RES_VLNOISESIMULATION', '_RES_VLSHIFTSIMULATION', '_RES_TC2_90_VLDETECTORS']
 
-_SPD_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'spd' + _SEP  # folder with spd data
-_RES_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'res' + _SEP  # folder with res data
+_SPD_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'SPD' + _SEP  # folder with spd data
+_RES_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'RES' + _SEP  # folder with res data
+_CORR_PATH = _PKG_PATH + _SEP + 'data' + _SEP + 'CORR' + _SEP  # folder with res data
 
 ###############################################################################
 # spectral power distributions:
