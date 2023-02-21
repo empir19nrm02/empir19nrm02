@@ -6,6 +6,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="luxpy" />
     <orderEntry type="module" module-name="TechnoTeamPy" />
+    <orderEntry type="module" module-name="WP2-examples" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="format" value="GOOGLE" />
