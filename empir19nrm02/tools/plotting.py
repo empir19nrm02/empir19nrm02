@@ -11,7 +11,7 @@ from .help import label_font_size
 
 __all__ = ['plotSelectedSPD','plotSPDs','plotYxy', 'plotHist', 'plotCorrMatrixSmall',
            'plotHistScales','plotHistScalesWl','plotHistScalesValue','plotHistGauss','confidence_ellipse','aspectratio_to_one','plot_2D',
-           'array2analyse','analyse_stat','get_data_step','seaborn_plot_basedata', 'seaborn_plot_result']
+           'array2analyse','analyse_stat','get_data_step','seaborn_plot_basedata', 'seaborn_plot_result', 'seaborn_plot_result_gen', 'get_data_step']
 
 def plotSPDs(SPDs, title='SDs', fileName=None,fontsize=None, normalize = True, log=False):
     for i in range(1,SPDs.shape[0]):
@@ -146,8 +146,7 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
     ax1.axvline(value[0], color='tab:red')
     if filename is not None:
         fig.savefig(filename)
-#    if ax is None:
-#        fig.show()
+    return [value, interval]
 
 def plotHistScalesWl(data, fig=None, ax=None, bins=50, density=True,
                      title='Histogram of wavelength scale',
@@ -407,3 +406,39 @@ def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pypl
 
     ax1.set_aspect('equal')
     return ax1
+
+def get_data_step(size_to_minimize, max_data_to_display=10000):
+    if size_to_minimize < max_data_to_display:
+        step = 1
+        disp_count = size_to_minimize
+    else:
+        step = int(size_to_minimize / max_data_to_display)
+        disp_count = int(size_to_minimize / step)
+    return disp_count, step
+
+def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [], title=''):
+    disp_array_count, step = get_data_step(loc_result.shape[1])
+    disp_array = np.zeros((dim, disp_array_count - 1))
+    #print( loc_result[:,0])
+    for i in range(disp_array_count - 1):
+        for j in range(dim):
+            match display[j]:
+                case 0 | 'n' | 'none':   disp_array[j, i] = loc_result[j, i * step + 1]
+                case 1 | 'r' | 'rel':    disp_array[j, i] = loc_result[j, i * step + 1] / loc_result[j, 0]
+                case 2 | 'd' | 'diff':   disp_array[j, i] = loc_result[j, i * step + 1] - loc_result[j, 0]
+                case _: print('Display kind', display[j], ' not supported')
+
+    sns.set_theme(style="ticks")
+    column_str_loc = column_str.copy()
+    for j in range(dim):
+        match display[j]:
+            case 0 | 'n' | 'none':   column_str_loc[j] = '$'+ column_str_loc[j] + '$'
+            case 1 | 'r' | 'rel':    column_str_loc[j] = '$'+ column_str_loc[j] + '_{\mathrm{rel}}$'
+            case 2 | 'd' | 'diff':   column_str_loc[j] = '$'+ '\Delta ' + column_str_loc[j] + '$'
+            case _: print('Display kind', display[j], ' not supported')
+
+    _df = pd.DataFrame(data=disp_array.T, columns=column_str_loc)
+    grid = sns.pairplot(_df, corner=True, height=5)
+    plotTitle = title
+
+    grid.fig.suptitle(plotTitle.format())

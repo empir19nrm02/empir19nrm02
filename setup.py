@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='empir19nrm02',
-    version='0.1.0',
+    version='0.1.7',
     packages= find_packages(),
     url='https://github.com/empir19nrm02/empir19nrm02',
     license='',
@@ -13,28 +13,23 @@ setup(
 
 	install_requires=[
         'numpy',
-        'math',
 		'scipy',
 		'matplotlib',
 		'pyxll',
         'luxpy',
         'pandas',
-        'os',
         'dataclasses',
-        'copy',
-        'traceback',
-        'pickle',
-        'mpl_toolkits',
         'seaborn',
         'sigfig',
       ],
-	package_data={'': [	'data/spd/*.csv', 'data/spd/*.txt', 
-						'data/res/*.csv', 'data/res/*.txt', 
-						'data/corr/*.csv', 'data/corr/*.xlsx']},
+	package_data={'': [	'data/SPD/*.csv', 'data/SPD/*.txt',
+						'data/RES/*.csv', 'data/RES/*.txt',
+						'data/CORR/*.csv', 'data/CORR/*.xlsx']},
     include_package_data = True,
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python :: 3',
         ],
-    python_requires='>=3.10',
+    # normally >=3.10
+    python_requires='>=3.8',
 )
