@@ -113,7 +113,9 @@ def generate_FourierMC0( number:int, base_function_size:int, uValue:float, org_f
     if not use_gamma_phi:
         rGammaiN[:] = 1.
     if single_function:
-        rMatrix = np.squeeze(np.dot(baseFunctions, rGammaiN[0]))
+        # noise not unity in this case --> not weight here (THX: Alejandro)
+        #rMatrix = np.squeeze(np.dot(baseFunctions, rGammaiN[0]))
+        rMatrix = np.squeeze(np.dot(baseFunctions, 1.))
     else:
         rMatrix = np.dot(baseFunctions, rGammaiN)
     rMatrixSPD = rMatrix*uValue
@@ -185,7 +187,9 @@ def generate_chebyshevMC0( number:int, base_function_size:int, uValue:float, org
     if not use_gamma_phi:
         rGammaiN[:] = 1.
     if single_function:
-        rMatrix = np.squeeze(np.dot(baseFunctions, rGammaiN[0]))
+        # noise not unity in this case --> not weight here (THX: Alejandro)
+        #rMatrix = np.squeeze(np.dot(baseFunctions, rGammaiN[0]))
+        rMatrix = np.squeeze(np.dot(baseFunctions, 1.))
     else:
         rMatrix = np.dot(baseFunctions, rGammaiN)
     rMatrixSPD = rMatrix*uValue
