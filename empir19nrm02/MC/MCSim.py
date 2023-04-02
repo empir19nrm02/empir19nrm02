@@ -580,7 +580,7 @@ class MCSimulation(object):
             for k in range( len( self.output_var[0])):
                 var = self.output_var[i][k]
                 if isinstance(var, MCVectorVar):
-                    if var.elements < 5:
+                    if var.elements < 10:
                         var.val[:,0]=var.val[:,0]/var.val[0,0]
                         [values, interval] = sumMCV(var.val)
                         for l in range(var.elements):
@@ -594,7 +594,7 @@ class MCSimulation(object):
                 res_data = pd.DataFrame( [line_data])
             else:
                 res_data = pd.concat( [res_data, pd.DataFrame( [line_data])])
-        pd.options.display.float_format = '{:,.6f}'.format
+        pd.options.display.float_format = '{:,.8f}'.format
         return res_data
 
 def McSim_main():

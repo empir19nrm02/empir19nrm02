@@ -136,7 +136,7 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
 
     # stat over all
     [value, interval] = sumMC(data, Coverage=0.95)
-    print('Value=', value, 'Inteval(95%)=', interval[1] - interval[0])
+    print('Value=', value, 'Inteval(95%)=', interval[1] - interval[0], 'U=', (interval[1] - interval[0])/2)
 
     if add_distribution:
         ax1.plot(bins_hist, gauss(bins_hist, value[0], value[1]), linewidth=2, color='r')
