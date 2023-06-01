@@ -21,6 +21,7 @@ setup(
         'dataclasses',
         'seaborn',
         'sigfig',
+		'varname',
       ],
 	package_data={'': [	'data/SPD/*.csv', 'data/SPD/*.txt',
 						'data/RES/*.csv', 'data/RES/*.txt',

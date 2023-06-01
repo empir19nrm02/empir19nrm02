@@ -21,10 +21,11 @@ strd = {
     'q_plus_a': '$F^{a}_{i,q+}$',
     'srelLambda': '$s_{\mathrm{rel}}(\lambda)$',
     'SDLambda': '$S(\lambda)$',
+    'VLambda': '$V(\lambda)$',
     'xlambda': '$\lambda$ / nm',
     'pernm_e' : ' / \mathrm{nm^{-1}}',
     'smel_e': 's_{\mathrm{mel}}',
-    'AU': ''}
+    'AU': 'A.U.'}
 
 fig_number = 1
 fig_type= '.svg'
@@ -149,7 +150,7 @@ def label_management( locfig0, locax2nd, strColor2nd='blue'):
     return [lines, labels]
 
 def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
-                          out_dir = None, plots=['plot1', 'plot2'], S_C='LED_L41', spectrum_color=False):
+                          out_dir = None, plots=['plot1', 'plot2'], S_C='LED_L41', spectrum_color=False, grid=True):
     if cieobs=='VS':
         cieobs='1951_20_scotopic'
 
@@ -175,11 +176,17 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
     # add the wavelength scale to the field
     detectorNorm = np.vstack((detectors[0], detectorNorm))
 
+    # short evaluation with f1p values (calibration A, for the selected target function and observer)
+    f1p=lx.spectral_mismatch_and_uncertainty.f1prime(detectors, S_C='A', cieobs=cieobs, s_target_index=s_target_index)
+
     if 'plot1' in plots:
         # plot all normalized detectors
         fig, ax1 = pyplot.subplots()
         for i in range(1, detectorNorm.shape[0]):
-            ax1.plot(detectorNorm[0], detectorNorm[i])
+            if detectorNorm.shape[0] == 2:
+                ax1.plot(detectorNorm[0], detectorNorm[i], '--', label = f"Detector {strd['f1p']} = {f1p[0]*100:0.2} %")
+            else:
+                ax1.plot(detectorNorm[0], detectorNorm[i])
         if target is not None:
             ax1.plot(target[0], target[1], 'g-', label= r'target '+cieobs)
         if spectrum_color:
@@ -187,8 +194,14 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
 
         ax1.set_ylabel(strd['srelLambda'],fontsize=label_font_size)
         ax1.set_xlabel(strd['xlambda'],fontsize=label_font_size)
-        ax1.legend()
-        ax1.tick_params(axis='both', direction='out')
+        ax1.legend(frameon=False, fontsize=label_font_size)
+        ax1.grid( visible=grid)
+        ax1.tick_params(bottom=True, top=False, left=True, right=False)
+        ax1.tick_params(direction='out')
+        for spine in pyplot.gca().spines.values():
+            spine.set_edgecolor('black')
+        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0), ncol=2, frameon=False, fontsize=label_font_size)
+
         if out_dir is not None:
             save_fig( out_dir, name+'_all')
 
@@ -211,12 +224,11 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
         ax2.tick_params(axis='both', direction='out')
 
         [lines, labels]=label_management( fig, ax2, 'red')
-        fig.legend(lines, labels, bbox_to_anchor=(0.65, 0.55, 0.4, 0.3), loc='upper left')
+        fig.legend(lines, labels, bbox_to_anchor=(0.65, 0.55, 0.4, 0.3), loc='upper left', fontsize=label_font_size)
+        ax1.grid( visible=grid)
         if out_dir is not None:
             save_fig( out_dir, name+'_meansigma')
 
-    # short evaluation with f1p values (calibration A, for the selected target function and observer)
-    f1p=lx.spectral_mismatch_and_uncertainty.f1prime(detectors, S_C='A', cieobs=cieobs, s_target_index=s_target_index)
     #print(f1p)
     return detectorNorm, f1p
 
@@ -231,6 +243,11 @@ def plotCorrelation( image, wl_scale, name):
     ax1.set_title(name)
     ax1.set_xlabel('$\lambda$ / nm', fontsize=label_font_size)
     ax1.set_ylabel('$\lambda$ / nm', fontsize=label_font_size)
+    ax1.tick_params(bottom=True, top=False, left=True, right=False)
+    ax1.tick_params(direction='out')
+    for spine in pyplot.gca().spines.values():
+        spine.set_edgecolor('black')
+
 
 # THX: https://stackoverflow.com/questions/7965743/how-can-i-set-the-aspect-ratio-in-matplotlib
 def aspectratio_to_one( ax):

@@ -108,12 +108,12 @@ def plotHistGauss(data, ax=None, bins=50, density=True,
     [value, interval] = sumMC(data, Coverage=0.95)
     ax1.plot(bins_hist, gauss(bins_hist, value[0], value[1],relative=relative), color, linewidth=2, label=title)
     ax1.set_xlabel(xLabel, fontsize=fontsize)
-    ax1.set_title(title)
-    ax1.legend()
+    ax1.set_title(title, fontsize=fontsize)
+    ax1.legend( frameon=False,fontsize=fontsize)
     if yLabel is None:
-        ax1.set_ylabel('Probability')
+        ax1.set_ylabel('Probability', fontsize=fontsize)
     else:
-        ax1.set_ylabel(yLabel)
+        ax1.set_ylabel(yLabel, fontsize=fontsize)
     return ax1
 
 def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
@@ -354,7 +354,7 @@ def aspectratio_to_one( ax):
 #    ax1.set_aspect('equal')
 #    #aspectratio_to_one(ax1)
 
-def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pyplot.axes=None, center_data:bool=False, k_display=1, offset=0):
+def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pyplot.axes=None, center_data:bool=False, k_display=1, offset=0, grid=True):
     """
     show 2D measurement data in a diagram with  .
 
@@ -395,7 +395,7 @@ def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pypl
         _, step = get_data_step(len(data_x), number)
         ax1.plot(data_x[::step], data_y[::step], marker_color + 'x')
     confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2)
-    ax1.grid(visible=True)
+    ax1.grid(visible=grid)
     ax1.legend()
     if center_data:
         ax1.set_xlabel(r'$x-\bar{x}$', fontsize=label_font_size)

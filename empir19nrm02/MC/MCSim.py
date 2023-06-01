@@ -67,6 +67,8 @@ class MCVar(object):
         self.setParam.file = file
         # samples
         self.val = None
+        # use current samples
+        self.use_current_data = False
 
     def __getitem__(self, item):
         return self.val[item]
@@ -80,26 +82,28 @@ class MCVar(object):
         self.setParam.trials = trials
         self.setParam.step = step
 
-        if file is None:
-            self.val=draw_values_gum(mean=self.setParam.distribution.mean,
-                                     stddev=self.setParam.distribution.stddev,
-                                     draws=self.setParam.trials,
-                                     distribution=self.setParam.distribution.distribution)
-            # store the first value as reference
-            self.val[0] = self.setParam.distribution.mean
-        else:
-            # load data from file
-            if '.pkl' in file:
-                tmpVar = MCVar()
-                tmpVar.unpickle(file)
-                # do not change the value name and unit here
-                self.val = tmpVar.val.copy()
-                self.setParam.trials = tmpVar.setParam.trials
-                self.setParam.step = tmpVar.setParam.step
-                self.setParam.distribution = tmpVar.setParam.distribution
-                self.setParam.file = tmpVar.setParam.file
+        # do not generate new numbers, use the numbers available
+        if not self.use_current_data:
+            if file is None:
+                self.val=draw_values_gum(mean=self.setParam.distribution.mean,
+                                         stddev=self.setParam.distribution.stddev,
+                                         draws=self.setParam.trials,
+                                         distribution=self.setParam.distribution.distribution)
+                # store the first value as reference
+                self.val[0] = self.setParam.distribution.mean
+            else:
+                # load data from file
+                if '.pkl' in file:
+                    tmpVar = MCVar()
+                    tmpVar.unpickle(file)
+                    # do not change the value name and unit here
+                    self.val = tmpVar.val.copy()
+                    self.setParam.trials = tmpVar.setParam.trials
+                    self.setParam.step = tmpVar.setParam.step
+                    self.setParam.distribution = tmpVar.setParam.distribution
+                    self.setParam.file = tmpVar.setParam.file
 
-        self.setParam.file = file
+            self.setParam.file = file
     def pickle(self, filename = None):
         if filename is None:
             (filename, line_number, function_name, text) = traceback.extract_stack()[-2]
@@ -176,7 +180,7 @@ class MCVectorVar(MCVar):
             self.noise_list = noise_list
     def set_vector_param(self, v_mean, v_std = None, corr = None, cov = None):
         if v_mean.shape[0] != self.elements:
-            raise TypeError("v_mean should have the rigth shape", self.elements)
+            raise TypeError(f"v_mean should have the rigth shape shape v_mean: {v_mean.shape[0]} shape elements: {self.elements}")
         self.setData.v_mean = v_mean.copy()
         if not cov is None:
             if cov.shape[0] != self.elements | cov.shape[1] != self.elements:
@@ -205,51 +209,54 @@ class MCVectorVar(MCVar):
         self.setParam.trials = trials
         self.setParam.step = step
 
-        if file is None:
-            if not self.noise_list:
-                try:
-                    self.val = np.random.default_rng().multivariate_normal(self.setData.v_mean, self.setData.cov_matrix, self.setParam.trials)
-                except np.linalg.LinAlgError:
-                    print('SVD LinAlgError:  improvement of cov. Matrix required.')
-                    self.improve_covariance(mode='eigenvalues', ratio=0.001)
-                    # try again
-                    self.val = np.random.default_rng().multivariate_normal(self.setData.v_mean, self.setData.cov_matrix, self.setParam.trials)
+        # do not generate new numbers, use the numbers available
+        if not self.use_current_data:
+            if file is None:
+                if not self.noise_list:
+                    try:
+                        self.val = np.random.default_rng().multivariate_normal(self.setData.v_mean, self.setData.cov_matrix, self.setParam.trials)
+                    except np.linalg.LinAlgError:
+                        print('SVD LinAlgError:  improvement of cov. Matrix required.')
+                        self.improve_covariance(mode='eigenvalues', ratio=0.001)
+                        # try again
+                        self.val = np.random.default_rng().multivariate_normal(self.setData.v_mean, self.setData.cov_matrix, self.setParam.trials)
+                else:
+                    self.val = np.zeros((self.setParam.trials, self.elements))
+                    for i in range(1, self.setParam.trials):
+                        self.val[i] = self.setData.v_mean.copy()
+                        for noise, params in self.noise_list.items():
+                            match noise:
+                                case 'nc_add':
+                                    self.val[i] = self.add_noise_nc_add(self.val[i], params).copy()
+                                case 'f_add':
+                                    noise = self.add_base_function_noise_add(self.val[i], params)
+                                    self.val[i] = noise.copy()
+                                case 'nc_mul':
+                                    self.val[i] = self.add_noise_nc_mul(self.val[i], params).copy()
+                                case 'f_mul':
+                                    self.val[i] = self.add_base_function_noise_mul(self.val[i], params).copy()
+                                case _: print( noise, ' Not implemented')
+                # store the first value as reference
+                self.calc_cov_matrix_from_data()
+                # using the mean value from the generated data
+                # v_std is using the std. deviation from the generated data too
+                #self.val[0] = self.runData.v_mean
+                self.val[0] = self.setData.v_mean
             else:
-                self.val = np.zeros((self.setParam.trials, self.elements))
-                for i in range(1, self.setParam.trials):
-                    self.val[i] = self.setData.v_mean.copy()
-                    for noise, params in self.noise_list.items():
-                        match noise:
-                            case 'nc_add':
-                                self.val[i] = self.add_noise_nc_add(self.val[i], params).copy()
-                            case 'f_add':
-                                noise = self.add_base_function_noise_add(self.val[i], params)
-                                self.val[i] = noise.copy()
-                            case 'nc_mul':
-                                self.val[i] = self.add_noise_nc_mul(self.val[i], params).copy()
-                            case 'f_mul':
-                                self.val[i] = self.add_base_function_noise_mul(self.val[i], params).copy()
-                            case _: print( noise, ' Not implemented')
-            # store the first value as reference
-            self.calc_cov_matrix_from_data()
-            # using the mean value from the generated data
-            # v_std is using the std. deviation from the generated data too
-            self.val[0] = self.runData.v_mean
-        else:
-            # load data from file
-            if '.pkl' in file:
-                tmpVar = MCVectorVar()
-                tmpVar.unpickle(file)
-                # do not change the value name and unit here
-                self.setParam = tmpVar.setParam
-                self.elements = tmpVar.elements
-                self.setData = tmpVar.setData
-                self.runData = tmpVar.runData
-                self.noise_list = tmpVar.noise_list
-                self.val = tmpVar.val
-            if '.xls' in file:
-                # ToDo: Read from XLS
-                tmpVar = MCVectorVar()
+                # load data from file
+                if '.pkl' in file:
+                    tmpVar = MCVectorVar()
+                    tmpVar.unpickle(file)
+                    # do not change the value name and unit here
+                    self.setParam = tmpVar.setParam
+                    self.elements = tmpVar.elements
+                    self.setData = tmpVar.setData
+                    self.runData = tmpVar.runData
+                    self.noise_list = tmpVar.noise_list
+                    self.val = tmpVar.val
+                if '.xls' in file:
+                    # ToDo: Read from XLS
+                    tmpVar = MCVectorVar()
 
     def add_noise_nc_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
@@ -520,9 +527,7 @@ class MCSimulation(object):
             self.output_var[i] = copy.deepcopy(output_var)
 
     def generate(self):
-        print( 'Generate:')
         for var in self.input_var:
-            print( var)
             var.generate_numbers(self.trials)
         for i in range(0,self.in_elements):
             for var in self.output_var[i]:
@@ -531,7 +536,9 @@ class MCSimulation(object):
     def calculate_model(self, model):
         x0 =[var[0] for var in self.input_var]
         for i in range(self.trials):
+            #print( f"i:{i}")
             for k in range(self.in_elements):
+                #print(f"    k:{k}")
                 if i == 0:
                     x = x0.copy()
                 else:
@@ -551,7 +558,7 @@ class MCSimulation(object):
             'Unit': '',
             'Mean':0.,
             'StdDev': 0,
-            'Distr': 0,
+            'Distr': '',
             }
         for i in range(self.in_elements):
             if i < len(self.input_var):
@@ -573,8 +580,8 @@ class MCSimulation(object):
             else:
                 line_data['Input'] = 'All'
                 line_data['Unit'] = ''
-                line_data['Mean'] = ''
-                line_data['StdDev'] = ''
+                line_data['Mean'] = 0.
+                line_data['StdDev'] = 0.
                 line_data['Distr'] = ''
 
             for k in range( len( self.output_var[0])):
