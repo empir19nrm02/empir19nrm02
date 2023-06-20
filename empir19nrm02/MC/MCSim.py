@@ -593,10 +593,14 @@ class MCSimulation(object):
                         for l in range(var.elements):
                             line_data[var.name.get_name_unit(l)[0]] = values[0][l]
                             line_data['u('+var.name.get_name_unit(l)[0]+')'] = values[1][l]
+                            #line_data['lo('+var.name.get_name_unit(l)[0]+')'] = interval[0][l]
+                            #line_data['up('+var.name.get_name_unit(l)[0]+')'] = interval[1][l]
                 else:
                     [values, interval] = sumMC(var.val)
                     line_data[var.name.get_name_unit()[0]] = values[0]
                     line_data['u(' + var.name.get_name_unit()[0] + ')'] = values[1]
+                    #line_data['lo(' + var.name.get_name_unit()[0] + ')'] = interval[0]
+                    #line_data['up(' + var.name.get_name_unit()[0] + ')'] = interval[1]
             if res_data is None:
                 res_data = pd.DataFrame( [line_data])
             else:

@@ -194,7 +194,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
 
         ax1.set_ylabel(strd['srelLambda'],fontsize=label_font_size)
         ax1.set_xlabel(strd['xlambda'],fontsize=label_font_size)
-        ax1.legend(frameon=False, fontsize=label_font_size)
+        #ax1.legend(frameon=False, fontsize=label_font_size)
         ax1.grid( visible=grid)
         ax1.tick_params(bottom=True, top=False, left=True, right=False)
         ax1.tick_params(direction='out')
@@ -232,7 +232,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
     #print(f1p)
     return detectorNorm, f1p
 
-def plotCorrelation( image, wl_scale, name):
+def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label='$\lambda$ / nm'):
     fig, ax1 = pyplot.subplots(figsize=(7,7))
     im1 = ax1.imshow(image,
                  extent=[wl_scale[0], wl_scale[-1], wl_scale[-1], wl_scale[0]],
@@ -241,8 +241,8 @@ def plotCorrelation( image, wl_scale, name):
     cax = divider.append_axes('right', size='5%', pad=0.05)
     fig.colorbar(im1, cax=cax, orientation='vertical')
     ax1.set_title(name)
-    ax1.set_xlabel('$\lambda$ / nm', fontsize=label_font_size)
-    ax1.set_ylabel('$\lambda$ / nm', fontsize=label_font_size)
+    ax1.set_xlabel(x_label, fontsize=label_font_size)
+    ax1.set_ylabel(y_label, fontsize=label_font_size)
     ax1.tick_params(bottom=True, top=False, left=True, right=False)
     ax1.tick_params(direction='out')
     for spine in pyplot.gca().spines.values():
