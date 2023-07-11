@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='empir19nrm02',
-    version='0.1.7',
+    version='0.1.9',
     packages= find_packages(),
     url='https://github.com/empir19nrm02/empir19nrm02',
     license='',
@@ -31,6 +31,5 @@ setup(
         'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python :: 3',
         ],
-    # normally >=3.10
-    python_requires='>=3.8',
+    python_requires='>=3.10',
 )

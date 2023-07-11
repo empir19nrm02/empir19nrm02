@@ -117,7 +117,7 @@ def plotHistGauss(data, ax=None, bins=50, density=True,
     return ax1
 
 def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
-                   title='Title', xLabel='xLabel', yLabel=None,
+                   title='Title', xLabel='xLabel', yLabel=None, label='',color='r',
                    filename=None, fontsize=None, add_distribution = False):
     if ax == None:
         fig, ax1 = plt.subplots()
@@ -139,7 +139,7 @@ def plotHistScales(data, fig=None, ax=None, bins=50, density=True,
     print('Value=', value, 'Inteval(95%)=', interval[1] - interval[0], 'U=', (interval[1] - interval[0])/2)
 
     if add_distribution:
-        ax1.plot(bins_hist, gauss(bins_hist, value[0], value[1]), linewidth=2, color='r')
+        ax1.plot(bins_hist, gauss(bins_hist, value[0], value[1]), linewidth=2, color=color, label=label)
 
     ax1.axvline(interval[0])
     ax1.axvline(interval[1])
@@ -416,7 +416,7 @@ def get_data_step(size_to_minimize, max_data_to_display=10000):
         disp_count = int(size_to_minimize / step)
     return disp_count, step
 
-def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [], title=''):
+def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [], title='', fontsize=None):
     disp_array_count, step = get_data_step(loc_result.shape[1])
     disp_array = np.zeros((dim, disp_array_count - 1))
     #print( loc_result[:,0])
@@ -437,8 +437,14 @@ def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [
             case 2 | 'd' | 'diff':   column_str_loc[j] = '$'+ '\Delta ' + column_str_loc[j] + '$'
             case _: print('Display kind', display[j], ' not supported')
 
+
+    if fontsize:
+        sns.set(font_scale=fontsize/10)
+        sns.set_style("white")
+
     _df = pd.DataFrame(data=disp_array.T, columns=column_str_loc)
     grid = sns.pairplot(_df, corner=True, height=5)
+
     plotTitle = title
 
     grid.fig.suptitle(plotTitle.format())

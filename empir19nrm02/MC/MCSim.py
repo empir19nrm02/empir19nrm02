@@ -548,7 +548,9 @@ class MCSimulation(object):
                         x = x0.copy()
                         x[k] = self.input_var[k][i]
                 res = model(*x)
+                #print(res)
                 for j, var_out in enumerate(self.output_var[k]):
+                    #print(f"    j:{j}")
                     var_out[i] = res[j]
 
     def get_result_db(self):
@@ -572,7 +574,10 @@ class MCSimulation(object):
                     for key in self.input_var[i].noise_list:
                         line_data['Mean'] = self.input_var[i].noise_list[key].mean
                         line_data['StdDev'] = self.input_var[i].noise_list[key].stddev
-                        line_data['Distr'] = self.input_var[i].noise_list[key].distribution + ' ' + self.input_var[i].noise_list[key].add_params
+                        if self.input_var[i].noise_list[key].add_params is None:
+                            line_data['Distr'] = self.input_var[i].noise_list[key].distribution
+                        else:
+                            line_data['Distr'] = self.input_var[i].noise_list[key].distribution + ' ' + self.input_var[i].noise_list[key].add_params
                 else:
                     line_data['Mean'] = self.input_var[i].setParam.distribution.mean
                     line_data['StdDev'] = self.input_var[i].setParam.distribution.stddev
