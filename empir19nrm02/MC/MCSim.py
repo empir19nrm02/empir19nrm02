@@ -157,8 +157,10 @@ def McVar_test():
     var2Load.print_stat(out_all=True)
 
 noise_list_default = {'nc_add': DistributionParam(),
+                      'c_add': DistributionParam(),
                       'f_add': DistributionParam(),
                       'nc_mul': DistributionParam(),
+                      'c_mul': DistributionParam(),
                       'f_mul': DistributionParam(),
                     }
 @dataclass
@@ -228,11 +230,15 @@ class MCVectorVar(MCVar):
                             match noise:
                                 case 'nc_add':
                                     self.val[i] = self.add_noise_nc_add(self.val[i], params).copy()
+                                case 'c_add':
+                                    self.val[i] = self.add_noise_c_add(self.val[i], params).copy()
                                 case 'f_add':
                                     noise = self.add_base_function_noise_add(self.val[i], params)
                                     self.val[i] = noise.copy()
                                 case 'nc_mul':
                                     self.val[i] = self.add_noise_nc_mul(self.val[i], params).copy()
+                                case 'c_mul':
+                                    self.val[i] = self.add_noise_c_mul(self.val[i], params).copy()
                                 case 'f_mul':
                                     self.val[i] = self.add_base_function_noise_mul(self.val[i], params).copy()
                                 case _: print( noise, ' Not implemented')
@@ -261,6 +267,9 @@ class MCVectorVar(MCVar):
     def add_noise_nc_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
         return tmpData + noise
+    def add_noise_c_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)
+        return tmpData + noise
 
     def add_base_function_noise_add(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = generate_base_functions( params.add_params, self.elements, params.stddev)
@@ -268,6 +277,9 @@ class MCVectorVar(MCVar):
 
     def add_noise_nc_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
         noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=self.elements, distribution=params.distribution)
+        return tmpData * (1. + noise)
+    def add_noise_c_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
+        noise = draw_values_gum(mean=params.mean, stddev=params.stddev, draws=1, distribution=params.distribution)
         return tmpData * (1. + noise)
 
     def add_base_function_noise_mul(self, tmpData:ndarray, params:DistributionParam)->ndarray:
