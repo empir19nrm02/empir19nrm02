@@ -56,18 +56,20 @@ def get_fig_file_name(dir=None, filename=None, table=False):
             file_name = dir + r'\Fig' + filename + fig_type
     return file_name
 
-def save_fig(dir = None, filename=None, fig=None):
+def save_fig(dir = None, filename=None, fig=None, show=True):
     name = get_fig_file_name(dir=dir, filename=filename)
 #    if dir and not os.path.exists(dir):
 #        os.makedirs(dir)
     if fig is None:
         pyplot.savefig( name, bbox_inches='tight', pad_inches=0)
-        pyplot.show()
+        if show:
+            pyplot.show()
     else:
         fig.savefig(name, bbox_inches='tight', pad_inches=0)
-        fig.show()
+        if show:
+            fig.show()
 
-def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colors = ['r-', 'g-','b-'], single = False, spectrum_color = True, xlim=None):
+def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colors = ['r-', 'g-','b-'], single = False, spectrum_color = True, xlim=None, spdmax = None):
     if ax is None:
         fig, ax = pyplot.subplots()
     if single:
@@ -79,9 +81,14 @@ def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colo
 
     if spectrum_color:
         if single:
-            plot_spectrum_colors(spdmax=np.max(_CMF[name]['bar'][2]), axh=ax, wavelength_height=-0.05, xlim=xlim)
+            if spdmax is None:
+                spdmax=1
+            # spdmax=np.max(_CMF[name]['bar'][2]),
+            plot_spectrum_colors( spdmax=spdmax, axh=ax, wavelength_height=-0.05, xlim=xlim)
         else:
-            plot_spectrum_colors(spdmax=np.max(_CMF[name]['bar'][3]), axh = ax, wavelength_height = -0.05, xlim=xlim)
+            if spdmax is None:
+                spdmax=np.nanmax(_CMF[name]['bar'][1:4])
+            plot_spectrum_colors(spdmax=spdmax, axh = ax, wavelength_height = -0.05, xlim=xlim)
 
     ax.set_xlabel(strd['xlambda'], fontsize=label_font_size)
     ax.set_ylabel('Responsivity', fontsize=label_font_size)
@@ -232,12 +239,12 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
     #print(f1p)
     return detectorNorm, f1p
 
-def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label='$\lambda$ / nm', fig=None, ax1=None):
+def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label='$\lambda$ / nm', fig=None, ax1=None, vmin=None, vmax=None):
     if fig is None:
         fig, ax1 = pyplot.subplots(figsize=(7,7))
     im1 = ax1.imshow(image,
                  extent=[wl_scale[0], wl_scale[-1], wl_scale[-1], wl_scale[0]],
-                 cmap="jet", interpolation="nearest")
+                 cmap="jet", interpolation="nearest", vmin=vmin, vmax=vmax)
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes('right', size='5%', pad=0.05)
     fig.colorbar(im1, cax=cax, orientation='vertical')

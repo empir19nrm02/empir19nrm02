@@ -299,6 +299,12 @@ class MCVectorVar(MCVar):
     # We need the covariance matrix first!
     # THX: https://gist.github.com/wiso/ce2a9919ded228838703c1c7c7dad13b
 
+    def transfer_runData2setData(self):
+        self.setData.v_mean = self.runData.v_mean
+        self.setData.v_std = self.runData.v_std
+        self.setData.cov_matrix = self.runData.cov_matrix
+        self.setData.corr_matrix = self.runData.corr_matrix
+
     @staticmethod
     def calc_corr_matrix_static(cov_matrix:ndarray):
         v_std = np.sqrt(np.diag(cov_matrix))
@@ -333,6 +339,7 @@ class MCVectorVar(MCVar):
         self.runData.cov_matrix = np.cov(self.val.T)
         self.calc_corr_matrix_data()
         return self.runData.cov_matrix
+
 
     def interpolate(self, wl_new, wl_current, kind='S', trials:int = None):
         if wl_current.shape[0] != self.elements:
@@ -559,11 +566,18 @@ class MCSimulation(object):
                     else:
                         x = x0.copy()
                         x[k] = self.input_var[k][i]
-                res = model(*x)
+                res = model(i, *x)
                 #print(res)
                 for j, var_out in enumerate(self.output_var[k]):
                     #print(f"    j:{j}")
                     var_out[i] = res[j]
+
+    def update_output_var(self):
+        for i in range(self.in_elements):
+            for var in self.output_var[i]:
+                # is var a MCVectorVar?
+                if isinstance(var, MCVectorVar):
+                    var.calc_cov_matrix_from_data()
 
     def get_result_db(self):
         res_data = None
@@ -604,7 +618,7 @@ class MCSimulation(object):
             for k in range( len( self.output_var[0])):
                 var = self.output_var[i][k]
                 if isinstance(var, MCVectorVar):
-                    if var.elements < 10:
+                    if var.elements < 20:
                         var.val[:,0]=var.val[:,0]/var.val[0,0]
                         [values, interval] = sumMCV(var.val)
                         for l in range(var.elements):

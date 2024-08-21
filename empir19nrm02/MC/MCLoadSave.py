@@ -31,10 +31,15 @@ def extract_data_from_array(allCells:ndarray, wlColumn = 0, valColumn=1, stdColu
         cov_matrix = allCells[startRow:rownumber, covColumn:rownumber+covColumn-startRow]
         mcVectorVar.set_vector_param(v_mean=signal, cov=cov_matrix)
     else:
-        if corrColumn and stdColumn:
+        if stdColumn:
             std = allCells[startRow:rownumber, stdColumn]
-            corr_matrix = allCells[startRow:rownumber, corrColumn:rownumber + corrColumn - startRow]
+            if corrColumn:
+                corr_matrix = allCells[startRow:rownumber, corrColumn:rownumber + corrColumn - startRow]
+            else:
+                corr_matrix = np.diag(np.ones(wl.shape[0]))
             mcVectorVar.set_vector_param(v_mean=signal, v_std=std, corr=corr_matrix)
+        else:
+            mcVectorVar.set_vector_param(v_mean=signal)
     return wl, mcVectorVar
 
 def is_valid_number(_str):

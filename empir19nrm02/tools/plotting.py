@@ -390,11 +390,15 @@ def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pypl
         data_x = data_x - np.mean(data_x)
         data_y = data_y - np.mean(data_y)
     # display the mean value
-    ax1.plot([np.mean(data_x)], [np.mean(data_y)], marker_color + 'o', label=name, markersize=10)
+    ax1.plot([np.mean(data_x)], [np.mean(data_y)], marker_color + 'o', label=name, markersize=3)
     if number:
         _, step = get_data_step(len(data_x), number)
         ax1.plot(data_x[::step], data_y[::step], marker_color + 'x')
-    confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2)
+    if not center_data:
+        confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2)
+    else:
+        confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2)
+
     ax1.grid(visible=grid)
     ax1.legend()
     if center_data:
@@ -416,7 +420,7 @@ def get_data_step(size_to_minimize, max_data_to_display=10000):
         disp_count = int(size_to_minimize / step)
     return disp_count, step
 
-def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [], title='', fontsize=None):
+def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [], title='', fontsize=None, kind='scatter'):
     disp_array_count, step = get_data_step(loc_result.shape[1])
     disp_array = np.zeros((dim, disp_array_count - 1))
     #print( loc_result[:,0])
@@ -428,7 +432,6 @@ def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [
                 case 2 | 'd' | 'diff':   disp_array[j, i] = loc_result[j, i * step + 1] - loc_result[j, 0]
                 case _: print('Display kind', display[j], ' not supported')
 
-    sns.set_theme(style="ticks")
     column_str_loc = column_str.copy()
     for j in range(dim):
         match display[j]:
@@ -441,9 +444,10 @@ def seaborn_plot_result_gen(loc_result, display = [1,0,0], dim=3, column_str = [
     if fontsize:
         sns.set(font_scale=fontsize/10)
         sns.set_style("white")
+    sns.set_style('ticks')
 
     _df = pd.DataFrame(data=disp_array.T, columns=column_str_loc)
-    grid = sns.pairplot(_df, corner=True, height=5)
+    grid = sns.pairplot(_df, corner=True, height=5, kind=kind)
 
     plotTitle = title
 

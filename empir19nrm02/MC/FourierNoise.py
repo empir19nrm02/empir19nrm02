@@ -76,7 +76,7 @@ def py_getGammai( number:int)->ndarray:
     QSum=np.sum( Yi**2)
     return Yi/math.sqrt(QSum)
 
-def generate_FourierMC0( number:int, base_function_size:int, uValue:float, org_function = True, single_function = False, use_gamma_phi=True)->ndarray:
+def generate_FourierMC0( number:int, base_function_size:int, uValue:float, org_function = True, single_function = False, use_gamma_phi=True, use_one_over_f=False)->ndarray:
     """
     Generate a set of fourier based functions according to https://doi.org/10.1088/1681-7575/aa7b39.
     equation (9)
@@ -92,6 +92,8 @@ def generate_FourierMC0( number:int, base_function_size:int, uValue:float, org_f
             | use the maximum order only
         : use_gamma_phi:
             | use gamma and phi
+        : use_one_over_f:
+            | use one over f noise
 
     Returns:
         :returns:
@@ -117,7 +119,17 @@ def generate_FourierMC0( number:int, base_function_size:int, uValue:float, org_f
         #rMatrix = np.squeeze(np.dot(baseFunctions, rGammaiN[0]))
         rMatrix = np.squeeze(np.dot(baseFunctions, 1.))
     else:
-        rMatrix = np.dot(baseFunctions, rGammaiN)
+        if use_one_over_f:
+            dSum = 1.
+            for i in range (1, number):
+                rGammaiN[i]= 1/float(i)
+            rMatrix = np.dot(baseFunctions, rGammaiN)
+            rPhasei2 = np.random.uniform(low=0, high=2 * math.pi)
+            for i in range (2, number):
+                dSum = dSum + 1. / (float(i) ** 2)
+            rMatrix = np.sin(rPhasei2)+np.cos(rPhasei2)/dSum*rMatrix
+        else:
+            rMatrix = np.dot(baseFunctions, rGammaiN)
     rMatrixSPD = rMatrix*uValue
     return rMatrixSPD
 
@@ -210,6 +222,7 @@ def generate_base_functions( param:str, base_function_size:int, uValue:float)->n
             | third element: m (optional) use a combination with N base functions, s use only the N-th base function
             | fourth element: o (optional) use the original normalization for the 0th order function
             | fifth element: ng (optional) use no gamma phi
+            | sixth element: 1f (optional) use 1/f noise
         :number:
             | number of base functions
         :base_function_size:
@@ -238,10 +251,15 @@ def generate_base_functions( param:str, base_function_size:int, uValue:float)->n
         use_gamma_phi = False
     else:
         use_gamma_phi = True
+    if '1f' in param.lower():
+        use_one_over_f = True
+    else:
+        use_one_over_f = False
     noise = None
     match working[0]:
         case 'f':noise = generate_FourierMC0(number=int(working[1]),
-                                            base_function_size=base_function_size, uValue=uValue, org_function=org_function, single_function=single_function, use_gamma_phi=use_gamma_phi)
+                                            base_function_size=base_function_size, uValue=uValue, org_function=org_function,
+                                            single_function=single_function, use_gamma_phi=use_gamma_phi, use_one_over_f=use_one_over_f)
         case 'c':noise = generate_chebyshevMC0(number=int(working[1]),
                                             base_function_size=base_function_size, uValue=uValue, org_function=org_function, single_function=single_function, use_gamma_phi=use_gamma_phi)
         case _: print( 'Base functions from type ' + working[0] + ' are not supported.')
