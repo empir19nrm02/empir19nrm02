@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='empir19nrm02',
-    version='0.1.9',
+    version='0.2.3',
     packages= find_packages(),
     url='https://github.com/empir19nrm02/empir19nrm02',
     license='',
     author='Udo Krüger',
     author_email='udo.krueger@technoteam.de',
-    description='Meausrement Uncertainty for EMPIR 19nrm02',
+    description='',
     keywords = ['color', 'colorimetry','photometry','CIE','spectral data', 'measurement uncertainty'],
 
 	install_requires=[

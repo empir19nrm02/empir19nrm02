@@ -163,7 +163,7 @@ def f_order(base_function_size, phase, order=0, single_function=False):
                              np.sin(phase[i]) * g_order(base_function_size, order=2 * i)
             baseFunctions[i,:] = singleBase.transpose()
     return baseFunctions.transpose()
-def generate_chebyshevMC0( number:int, base_function_size:int, uValue:float, org_function = True, single_function = False, use_gamma_phi = True)->ndarray:
+def generate_chebyshevMC0( number:int, base_function_size:int, uValue:float, org_function = True, single_function = False, use_gamma_phi = True, use_one_over_f = False)->ndarray:
     """
     Generate a set of chebyshev based functions according to https://doi.org/10.5194/amt-11-3595-2018.
     equation (9)
@@ -177,8 +177,10 @@ def generate_chebyshevMC0( number:int, base_function_size:int, uValue:float, org
             | uncertainty for the base functions (u_c() in equation (8))
         :single_function:
             | use the maximum order only
-        : use_gamma:
+        : use_gamma_phi:
             | use gamma for normalization
+        : use_one_over_f:
+            | use 1/f weighting
     Returns:
         :returns:
             | ndarray with set of base functions with weighting
@@ -203,7 +205,17 @@ def generate_chebyshevMC0( number:int, base_function_size:int, uValue:float, org
         #rMatrix = np.squeeze(np.dot(baseFunctions, rGammaiN[0]))
         rMatrix = np.squeeze(np.dot(baseFunctions, 1.))
     else:
-        rMatrix = np.dot(baseFunctions, rGammaiN)
+        if use_one_over_f:
+            dSum = 1.
+            for i in range (1, number):
+                rGammaiN[i]= 1/float(i)
+            rMatrix = np.dot(baseFunctions, rGammaiN)
+            rPhasei2 = np.random.uniform(low=0, high=2 * math.pi)
+            for i in range (2, number):
+                dSum = dSum + 1. / (float(i) ** 2)
+            rMatrix = np.sin(rPhasei2)+np.cos(rPhasei2)/dSum*rMatrix
+        else:
+            rMatrix = np.dot(baseFunctions, rGammaiN)
     rMatrixSPD = rMatrix*uValue
     return rMatrixSPD
 
@@ -261,6 +273,7 @@ def generate_base_functions( param:str, base_function_size:int, uValue:float)->n
                                             base_function_size=base_function_size, uValue=uValue, org_function=org_function,
                                             single_function=single_function, use_gamma_phi=use_gamma_phi, use_one_over_f=use_one_over_f)
         case 'c':noise = generate_chebyshevMC0(number=int(working[1]),
-                                            base_function_size=base_function_size, uValue=uValue, org_function=org_function, single_function=single_function, use_gamma_phi=use_gamma_phi)
+                                            base_function_size=base_function_size, uValue=uValue, org_function=org_function,
+                                            single_function=single_function, use_gamma_phi=use_gamma_phi, use_one_over_f=use_one_over_f)
         case _: print( 'Base functions from type ' + working[0] + ' are not supported.')
     return noise

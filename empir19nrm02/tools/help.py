@@ -75,9 +75,9 @@ def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colo
     if single:
         ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][2], cmf_colors[0],  label='$'+ cmf_symbols[0] + '(\lambda)$')
     else:
-        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][1], cmf_colors[0],  label=r'$\bar{'+cmf_symbols[0]+'}'+'(\lambda)$', lw=0.5)
-        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][2], cmf_colors[1],  label=r'$\bar{'+cmf_symbols[1]+'}'+'(\lambda)$', lw=0.5)
-        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][3], cmf_colors[2],  label=r'$\bar{'+cmf_symbols[2]+'}'+'(\lambda)$', lw=0.5)
+        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][1], cmf_colors[0],  label=r'$\bar{' + cmf_symbols[0][0] + '} ' + cmf_symbols[0][2:] + '(\lambda)$', lw=0.5)
+        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][2], cmf_colors[1],  label=r'$\bar{' + cmf_symbols[1][0] + '} ' + cmf_symbols[1][2:] + '(\lambda)$', lw=0.5)
+        ax.plot(_CMF[name]['bar'][0], _CMF[name]['bar'][3], cmf_colors[2],  label=r'$\bar{' + cmf_symbols[2][0] + '} ' + cmf_symbols[2][2:] + '(\lambda)$', lw=0.5)
 
     if spectrum_color:
         if single:
@@ -90,9 +90,9 @@ def plot_cmf2( ax=None, name = '1931_2', cmf_symbols = ['x', 'y', 'z'], cmf_colo
                 spdmax=np.nanmax(_CMF[name]['bar'][1:4])
             plot_spectrum_colors(spdmax=spdmax, axh = ax, wavelength_height = -0.05, xlim=xlim)
 
-    ax.set_xlabel(strd['xlambda'], fontsize=label_font_size)
+    ax.set_xlabel('Wavelength (nm)', fontsize=label_font_size)
     ax.set_ylabel('Responsivity', fontsize=label_font_size)
-    ax.legend()
+    ax.legend( frameon=False, fontsize=label_font_size)
     return ax
 
 # modified from luxpy vlbar
@@ -239,7 +239,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
     #print(f1p)
     return detectorNorm, f1p
 
-def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label='$\lambda$ / nm', fig=None, ax1=None, vmin=None, vmax=None):
+def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label='$\lambda$ / nm', fig=None, ax1=None, vmin=None, vmax=None, c_label=None):
     if fig is None:
         fig, ax1 = pyplot.subplots(figsize=(7,7))
     im1 = ax1.imshow(image,
@@ -247,7 +247,9 @@ def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label=
                  cmap="jet", interpolation="nearest", vmin=vmin, vmax=vmax)
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes('right', size='5%', pad=0.05)
-    fig.colorbar(im1, cax=cax, orientation='vertical')
+    cbar = fig.colorbar(im1, cax=cax, orientation='vertical')
+    if c_label is not None:
+        cbar.set_label(c_label, fontsize=label_font_size)
     ax1.set_title(name)
     ax1.set_xlabel(x_label, fontsize=label_font_size)
     ax1.set_ylabel(y_label, fontsize=label_font_size)
@@ -270,20 +272,27 @@ def display_color_diagram( spd, _spectra, cspace = 'Yxy', diagram_colors=True):
         DataCSpace=lx.xyz_to_Yxy(lx.spd_to_xyz(_spectra))
         axh.set_xlim(0, 0.9)
         axh.set_ylim(0, 0.9)
+        axh.set_xlabel('x', fontsize=label_font_size)
+        axh.set_ylabel('y', fontsize=label_font_size)
     elif cspace == 'Yuv76':
         DataCSpace=lx.xyz_to_Yuv76(lx.spd_to_xyz(_spectra))
         axh.set_xlim(0, 0.7)
         axh.set_ylim(0, 0.7)
+        axh.set_xlabel('u', fontsize=label_font_size)
+        axh.set_ylabel('v', fontsize=label_font_size)
     else:
         print( 'ColorSpace: %s not supported' %(cspace))
     aspectratio_to_one( axh)
     plot_color_data(DataCSpace[:,1], DataCSpace[:,2], cspace=cspace, formatstr ='kx',label =spd, axh=axh, show=False)
     if diagram_colors:
         lx.plot_chromaticity_diagram_colors(axh=axh, cspace=cspace)
+    axh.legend( frameon=False, fontsize=label_font_size)
 
-def display_spectra( spd, _spectra, curvenumber = 10):
+def display_spectra( spd, _spectra, curvenumber = 10, legend = False):
     s_number = _spectra.shape[0]-1
     for i in np.linspace( 3, s_number, curvenumber):
-        pyplot.plot(_spectra[0], _spectra[int(i)]/np.max(_spectra[int(i)]))
+        pyplot.plot(_spectra[0], _spectra[int(i)]/np.max(_spectra[int(i)]), label=f"Index: {int(i)}")
     pyplot.ylabel(strd['SDLambda'],fontsize=label_font_size)
-    pyplot.xlabel(strd['xlambda'],fontsize=label_font_size)
+    pyplot.xlabel('Wavelength (nm)',fontsize=label_font_size)
+    if legend:
+        pyplot.legend( frameon=False)
