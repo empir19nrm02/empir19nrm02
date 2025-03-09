@@ -354,7 +354,7 @@ def aspectratio_to_one( ax):
 #    ax1.set_aspect('equal')
 #    #aspectratio_to_one(ax1)
 
-def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pyplot.axes=None, center_data:bool=False, k_display=1, offset=0, grid=True):
+def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pyplot.axes=None, center_data:bool=False, k_display=1, offset=0, grid=True, **kwargs):
     """
     show 2D measurement data in a diagram with  .
 
@@ -390,14 +390,14 @@ def plot_2D(inVec, number:int=100, name:str=None, marker_color:str='r', ax1:pypl
         data_x = data_x - np.mean(data_x)
         data_y = data_y - np.mean(data_y)
     # display the mean value
-    ax1.plot([np.mean(data_x)], [np.mean(data_y)], marker_color + 'o', label=name, markersize=3)
+    ax1.plot([np.mean(data_x)], [np.mean(data_y)], marker_color + 'o', label=name, markersize=3, **kwargs)
     if number:
         _, step = get_data_step(len(data_x), number)
         ax1.plot(data_x[::step], data_y[::step], marker_color + 'x')
     if not center_data:
-        confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2)
+        confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2, **kwargs)
     else:
-        confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2)
+        confidence_ellipse(data_x, data_y, ax1, n_std=k_display*2.45, edgecolor=marker_color, linewidth=2, **kwargs)
 
     ax1.grid(visible=grid)
     ax1.legend()

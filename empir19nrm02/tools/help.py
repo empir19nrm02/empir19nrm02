@@ -241,7 +241,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
 
 def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label='$\lambda$ / nm', fig=None, ax1=None, vmin=None, vmax=None, c_label=None):
     if fig is None:
-        fig, ax1 = pyplot.subplots(figsize=(7,7))
+        fig, ax1 = pyplot.subplots(figsize=(4,4))
     im1 = ax1.imshow(image,
                  extent=[wl_scale[0], wl_scale[-1], wl_scale[-1], wl_scale[0]],
                  cmap="jet", interpolation="nearest", vmin=vmin, vmax=vmax)
