@@ -13,6 +13,7 @@ __all__ = ['plotSelectedSPD','plotSPDs','plotYxy', 'plotHist', 'plotCorrMatrixSm
            'plotHistScales','plotHistScalesWl','plotHistScalesValue','plotHistGauss','confidence_ellipse','aspectratio_to_one','plot_2D',
            'array2analyse','analyse_stat','get_data_step','seaborn_plot_basedata', 'seaborn_plot_result', 'seaborn_plot_result_gen', 'get_data_step']
 
+
 def plotSPDs(SPDs, title='SDs', fileName=None,fontsize=None, normalize = True, log=False):
     for i in range(1,SPDs.shape[0]):
         if normalize:

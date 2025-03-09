@@ -239,6 +239,7 @@ def display_responsivity( name, detectors, cieobs='1931_2', s_target_index=2,
     #print(f1p)
     return detectorNorm, f1p
 
+
 def plotCorrelation( image, wl_scale, name, x_label = '$\lambda$ / nm', y_label='$\lambda$ / nm', fig=None, ax1=None, vmin=None, vmax=None, c_label=None):
     if fig is None:
         fig, ax1 = pyplot.subplots(figsize=(4,4))
